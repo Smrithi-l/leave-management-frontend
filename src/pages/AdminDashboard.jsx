@@ -1028,7 +1028,7 @@ const AdminDashboard = () => {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
                             <StatusChip
-                              label={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                              label={user.role.toUpperCase() + user.role.slice(1)}
                               status={user.role === "admin" ? "Admin" : "Employee"}
                               size="small"
                             />
