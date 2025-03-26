@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextField, Button, Container, Typography, Box } from "@mui/material";
+import { TextField, Button, Container, Typography, Box, CircularProgress } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/auth";
 
@@ -7,9 +7,13 @@ const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false); // Loader state
     const navigate = useNavigate();
 
     const handleLogin = async () => {
+        setLoading(true); // Show loader
+        setError(null);
+
         try {
             const response = await loginUser(email, password);
             localStorage.setItem("token", response.token);
@@ -17,6 +21,8 @@ const Login = () => {
             window.location.href = response.role === "admin" ? "/admin-dashboard" : "/employee-dashboard";
         } catch (error) {
             setError("Invalid email or password");
+        } finally {
+            setLoading(false); // Hide loader
         }
     };
 
@@ -87,10 +93,14 @@ const Login = () => {
                             fontWeight: "bold",
                             borderRadius: 2,
                             textTransform: "none",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
                         }}
                         onClick={handleLogin}
+                        disabled={loading} // Disable button when loading
                     >
-                        Login
+                        {loading ? <CircularProgress size={24} sx={{ color: "white" }} /> : "Login"}
                     </Button>
                     <Typography mt={2} fontSize="0.9rem">
                         Don't have an account?{" "}
