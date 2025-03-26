@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Typography,
   Table,
@@ -42,6 +42,9 @@ import {
   CircularProgress,
   Tab,
   Tabs,
+  useMediaQuery,
+  useTheme,
+  Menu,
 } from "@mui/material"
 import { styled, alpha } from "@mui/material/styles"
 import {
@@ -61,6 +64,8 @@ import {
   Today as TodayIcon,
   History as HistoryIcon,
   AttachMoney as AttachMoneyIcon,
+  Menu as MenuIcon,
+  MoreVert as MoreVertIcon,
 } from "@mui/icons-material"
 import axios from "axios"
 
@@ -76,6 +81,10 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: "bold",
   backgroundColor: theme.palette.primary.main,
   color: theme.palette.common.white,
+  [theme.breakpoints.down('sm')]: {
+    padding: '8px 6px',
+    fontSize: '0.75rem',
+  },
 }))
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
@@ -110,8 +119,15 @@ const StatusChip = styled(Chip)(({ theme, status }) => {
     fontWeight: "medium",
     "& .MuiChip-label": {
       padding: "0 12px",
+      [theme.breakpoints.down('sm')]: {
+        padding: '0 4px',
+        fontSize: '0.625rem',
+      },
     },
     border: `1px solid ${alpha(color, 0.3)}`,
+    [theme.breakpoints.down('sm')]: {
+      height: '24px',
+    },
   }
 })
 
@@ -154,6 +170,9 @@ const CalendarDay = styled(Box)(({ theme, isWeekend, isToday, hasLeave }) => ({
       borderColor: `transparent ${theme.palette.primary.main} transparent transparent`,
     },
   }),
+  [theme.breakpoints.down('sm')]: {
+    padding: '2px',
+  },
 }))
 
 const LeaveIndicator = styled(Box)(({ theme, status }) => {
@@ -180,27 +199,37 @@ const LeaveIndicator = styled(Box)(({ theme, status }) => {
     color: bgColor,
     display: "flex",
     alignItems: "center",
+    [theme.breakpoints.down('sm')]: {
+      height: '14px',
+      fontSize: '8px',
+      padding: '1px 2px',
+    },
   }
 })
 
 const drawerWidth = 240
 
-const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(({ theme, open }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  transition: theme.transitions.create("margin", {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  marginLeft: 0,
-  ...(open && {
+const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" && prop !== "isMobile" })(
+  ({ theme, open, isMobile }) => ({
+    flexGrow: 1,
+    padding: theme.spacing(3),
     transition: theme.transitions.create("margin", {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
     }),
-    marginLeft: drawerWidth,
-  }),
-}))
+    marginLeft: 0,
+    ...(open && !isMobile && {
+      transition: theme.transitions.create("margin", {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+      marginLeft: drawerWidth,
+    }),
+    [theme.breakpoints.down('sm')]: {
+      padding: theme.spacing(2),
+    },
+  })
+)
 
 const StyledTab = styled(Tab)(({ theme }) => ({
   borderRadius: "8px 8px 0 0",
@@ -210,36 +239,54 @@ const StyledTab = styled(Tab)(({ theme }) => ({
     backgroundColor: alpha(theme.palette.primary.main, 0.08),
     color: theme.palette.primary.main,
   },
+  [theme.breakpoints.down('sm')]: {
+    minHeight: '40px',
+    fontSize: '0.75rem',
+    padding: '6px 8px',
+  },
+}))
+
+const ResponsiveTableContainer = styled(TableContainer)(({ theme }) => ({
+  [theme.breakpoints.down('md')]: {
+    overflowX: 'auto',
+  },
 }))
 
 const AdminDashboard = () => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
+  
   const [leaveRequests, setLeaveRequests] = useState([])
   const [filteredRequests, setFilteredRequests] = useState([])
   const [users, setUsers] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("All")
   const [open, setOpen] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(!isMobile)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(0)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [calendarData, setCalendarData] = useState([])
   const [selectedDate, setSelectedDate] = useState(null)
   const [dayLeaves, setDayLeaves] = useState([])
+  const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState(null)
+  const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState(null)
+  const [selectedActionUser, setSelectedActionUser] = useState(null)
   const [newEmployee, setNewEmployee] = useState({
     name: "",
     email: "",
     password: "",
     role: "employee",
-    isTeamLeader: false, // New State
+    isTeamLeader: false,
     teamLeaderId: "",
-    teamMembers: [], // New State
+    teamMembers: [],
     totalLeaves: 12,
     sickleave: 0,
     casualleave: 0,
     medicalleave: 0,
     Workfromhome: 0,
-    salary:0,
+    salary: 0,
   })
 
   const [selectedEmployee, setSelectedEmployee] = useState(null)
@@ -259,6 +306,11 @@ const AdminDashboard = () => {
   })
   const [employees, setEmployees] = useState([])
 
+  // Effect to handle drawer state based on screen size
+  useEffect(() => {
+    setDrawerOpen(!isMobile)
+  }, [isMobile])
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -274,6 +326,7 @@ const AdminDashboard = () => {
 
     fetchEmployees()
   }, [])
+  
   useEffect(() => {
     fetchLeaveRequests()
     fetchUsers()
@@ -307,7 +360,6 @@ const AdminDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       setOverallStats(response.data)
-      console.log(response.data)
     } catch (error) {
       console.error("Error fetching overall stats:", error)
     }
@@ -373,7 +425,7 @@ const AdminDashboard = () => {
     }
   }
 
-  const handleFilter = () => {
+  const handleFilter = useCallback(() => {
     let filtered = leaveRequests
     if (searchQuery) {
       filtered = filtered.filter((leave) => leave.userId.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -382,16 +434,16 @@ const AdminDashboard = () => {
       filtered = filtered.filter((leave) => leave.status === filterStatus)
     }
     setFilteredRequests(filtered)
-  }
+  }, [leaveRequests, searchQuery, filterStatus])
 
-  const calculateLeaveSummary = () => {
+  const calculateLeaveSummary = useCallback(() => {
     const total = leaveRequests.length
     const pending = leaveRequests.filter((req) => req.status === "Pending").length
     const approved = leaveRequests.filter((req) => req.status === "Approved").length
     const rejected = leaveRequests.filter((req) => req.status === "Rejected").length
 
     return { total, pending, approved, rejected }
-  }
+  }, [leaveRequests])
 
   const { total, pending, approved, rejected } = calculateLeaveSummary()
 
@@ -408,14 +460,14 @@ const AdminDashboard = () => {
         email: "",
         password: "",
         role: "employee",
-        isTeamLeader: false, // Reset State
+        isTeamLeader: false,
         teamMembers: [],
         totalLeaves: 12,
         sickleave: 0,
         casualleave: 0,
         medicalleave: 0,
         Workfromhome: 0,
-        salary:0,
+        salary: 0,
       })
       alert("Employee added successfully!")
     } catch (error) {
@@ -441,7 +493,7 @@ const AdminDashboard = () => {
     return new Date(year, month, 1).getDay()
   }
 
-  const generateCalendarData = () => {
+  const generateCalendarData = useCallback(() => {
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth()
 
@@ -466,7 +518,7 @@ const AdminDashboard = () => {
     }
 
     setCalendarData(calendarDays)
-  }
+  }, [currentMonth, leaveRequests])
 
   const getLeavesByDate = (date) => {
     return leaveRequests.filter((leave) => {
@@ -505,19 +557,44 @@ const AdminDashboard = () => {
   const formatDate = (date) => {
     if (!date) return ""
     return date.toLocaleDateString("en-US", {
-      weekday: "long",
+      weekday: isSmall ? "short" : "long",
       year: "numeric",
-      month: "long",
+      month: isSmall ? "short" : "long",
       day: "numeric",
     })
   }
 
   const handleTabChange = (newValue) => {
     setActiveTab(newValue)
+    if (isMobile) {
+      setDrawerOpen(false)
+    }
   }
 
   const handleHistoryTabChange = (event, newValue) => {
     setHistoryTab(newValue)
+  }
+
+  const handleMobileMenuOpen = (event) => {
+    setMobileMenuAnchorEl(event.currentTarget)
+  }
+
+  const handleMobileMenuClose = () => {
+    setMobileMenuAnchorEl(null)
+  }
+
+  const handleActionMenuOpen = (event, user) => {
+    setActionMenuAnchorEl(event.currentTarget)
+    setSelectedActionUser(user)
+  }
+
+  const handleActionMenuClose = () => {
+    setActionMenuAnchorEl(null)
+    setSelectedActionUser(null)
+  }
+
+  const toggleDrawer = () => {
+    setDrawerOpen(!drawerOpen)
   }
 
   return (
@@ -532,23 +609,88 @@ const AdminDashboard = () => {
         }}
       >
         <Toolbar>
+          {isMobile && (
+            <IconButton
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              onClick={toggleDrawer}
+              sx={{ mr: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+          
           <Typography
             variant="h6"
             component="div"
-            sx={{ flexGrow: 0, fontWeight: "bold", color: "primary.main", display: "flex", alignItems: "center" }}
+            sx={{ 
+              flexGrow: 0, 
+              fontWeight: "bold", 
+              color: "primary.main", 
+              display: "flex", 
+              alignItems: "center",
+              fontSize: isSmall ? '1rem' : '1.25rem'
+            }}
           >
-            <DashboardIcon sx={{ mr: 1 }} />
-            LeaveManagement
+            <DashboardIcon sx={{ mr: 1, fontSize: isSmall ? '1.25rem' : '1.5rem' }} />
+            {!isSmall && "LeaveManagement"}
           </Typography>
 
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+            {!isSmall && (
+              <TextField
+                placeholder="Search employees..."
+                size="small"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{
+                  width: isMobile ? "60%" : "40%",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "20px",
+                    bgcolor: alpha("#f5f5f5", 0.8),
+                    "&:hover": {
+                      bgcolor: alpha("#f5f5f5", 1),
+                    },
+                  },
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <IconButton size={isSmall ? "medium" : "large"} color="primary">
+              <Badge badgeContent={pending} color="error">
+                <NotificationsIcon fontSize={isSmall ? "small" : "medium"} />
+              </Badge>
+            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center", ml: isSmall ? 1 : 2 }}>
+              <Avatar sx={{ bgcolor: "primary.main", width: isSmall ? 28 : 36, height: isSmall ? 28 : 36 }}>A</Avatar>
+              {!isSmall && (
+                <Typography variant="subtitle2" sx={{ ml: 1, fontWeight: "medium" }}>
+                  Admin
+                </Typography>
+              )}
+            </Box>
+          </Box>
+        </Toolbar>
+        
+        {isSmall && (
+          <Box sx={{ px: 2, pb: 1 }}>
             <TextField
               placeholder="Search employees..."
               size="small"
+              fullWidth
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{
-                width: "40%",
                 "& .MuiOutlinedInput-root": {
                   borderRadius: "20px",
                   bgcolor: alpha("#f5f5f5", 0.8),
@@ -566,28 +708,15 @@ const AdminDashboard = () => {
               }}
             />
           </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton size="large" color="primary">
-              <Badge badgeContent={pending} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-            <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-              <Avatar sx={{ bgcolor: "primary.main", width: 36, height: 36 }}>A</Avatar>
-              <Typography variant="subtitle2" sx={{ ml: 1, fontWeight: "medium" }}>
-                Admin
-              </Typography>
-            </Box>
-          </Box>
-        </Toolbar>
+        )}
       </AppBar>
 
       {/* Sidebar */}
       <Drawer
-        variant="persistent"
+        variant={isMobile ? "temporary" : "persistent"}
         anchor="left"
         open={drawerOpen}
+        onClose={() => isMobile && setDrawerOpen(false)}
         sx={{
           width: drawerWidth,
           flexShrink: 0,
@@ -762,13 +891,14 @@ const AdminDashboard = () => {
       </Drawer>
 
       {/* Main Content */}
-      <Main open={drawerOpen}>
+      <Main open={drawerOpen} isMobile={isMobile}>
         <Toolbar />
+        {isSmall && <Box sx={{ height: 48 }} /> /* Extra space for search bar on small screens */}
 
         {activeTab === 0 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                 Admin Dashboard
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -777,81 +907,81 @@ const AdminDashboard = () => {
             </Box>
 
             {/* Summary Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12} sm={6} md={3}>
+            <Grid container spacing={isSmall ? 2 : 3} sx={{ mb: 4 }}>
+              <Grid item xs={6} sm={6} md={3}>
                 <SummaryCard cardcolor="#3f51b5">
-                  <CardContent>
+                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
                           Total Leaves
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
+                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                           {total}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#3f51b5", 0.1), color: "primary.main" }}>
-                        <AssessmentIcon />
+                      <Avatar sx={{ bgcolor: alpha("#3f51b5", 0.1), color: "primary.main", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                        <AssessmentIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
                   </CardContent>
                 </SummaryCard>
               </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <SummaryCard cardcolor="#ff9800">
-                  <CardContent>
+                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
                           Pending
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
+                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                           {pending}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#ff9800", 0.1), color: "#ff9800" }}>
-                        <EventIcon />
+                      <Avatar sx={{ bgcolor: alpha("#ff9800", 0.1), color: "#ff9800", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                        <EventIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
                   </CardContent>
                 </SummaryCard>
               </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <SummaryCard cardcolor="#4caf50">
-                  <CardContent>
+                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
                           Approved
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
+                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                           {approved}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#4caf50", 0.1), color: "#4caf50" }}>
-                        <CheckIcon />
+                      <Avatar sx={{ bgcolor: alpha("#4caf50", 0.1), color: "#4caf50", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                        <CheckIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
                   </CardContent>
                 </SummaryCard>
               </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <SummaryCard cardcolor="#f44336">
-                  <CardContent>
+                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
                           Rejected
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
+                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                           {rejected}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#f44336", 0.1), color: "#f44336" }}>
-                        <CloseIcon />
+                      <Avatar sx={{ bgcolor: alpha("#f44336", 0.1), color: "#f44336", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                        <CloseIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
                   </CardContent>
@@ -861,11 +991,11 @@ const AdminDashboard = () => {
 
             {/* Pending Leave Requests */}
             <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                   Pending Leave Requests
                 </Typography>
-                <FormControl size="small" sx={{ minWidth: 150 }}>
+                <FormControl size="small" sx={{ minWidth: isSmall ? 120 : 150 }}>
                   <InputLabel id="filter-status-label">Filter Status</InputLabel>
                   <Select
                     labelId="filter-status-label"
@@ -883,14 +1013,14 @@ const AdminDashboard = () => {
               </Box>
 
               <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-                <TableContainer>
+                <ResponsiveTableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
                         <StyledTableCell>Employee</StyledTableCell>
                         <StyledTableCell>Start Date</StyledTableCell>
                         <StyledTableCell>End Date</StyledTableCell>
-                        <StyledTableCell>Reason</StyledTableCell>
+                        {!isSmall && <StyledTableCell>Reason</StyledTableCell>}
                         <StyledTableCell>Status</StyledTableCell>
                         <StyledTableCell align="right">Actions</StyledTableCell>
                       </TableRow>
@@ -898,7 +1028,7 @@ const AdminDashboard = () => {
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                          <TableCell colSpan={isSmall ? 5 : 6} align="center" sx={{ py: 3 }}>
                             <CircularProgress size={30} />
                             <Typography variant="body2" sx={{ mt: 1 }}>
                               Loading leave requests...
@@ -912,45 +1042,56 @@ const AdminDashboard = () => {
                             <StyledTableRow key={leave._id}>
                               <TableCell>
                                 <Box sx={{ display: "flex", alignItems: "center" }}>
-                                  <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: "primary.main" }}>
+                                  <Avatar sx={{ width: isSmall ? 24 : 32, height: isSmall ? 24 : 32, mr: 1, bgcolor: "primary.main" }}>
                                     {getInitials(leave.userId)}
                                   </Avatar>
-                                  {leave.userId}
+                                  {isSmall ? getInitials(leave.userId) : leave.userId}
                                 </Box>
                               </TableCell>
                               <TableCell>{leave.startDate}</TableCell>
                               <TableCell>{leave.endDate}</TableCell>
-                              <TableCell>{leave.reason}</TableCell>
+                              {!isSmall && <TableCell>{leave.reason}</TableCell>}
                               <TableCell>
                                 <StatusChip label={leave.status} status={leave.status} size="small" />
                               </TableCell>
                               <TableCell align="right">
-                                <Button
-                                  variant="outlined"
-                                  color="success"
-                                  size="small"
-                                  startIcon={<CheckIcon />}
-                                  onClick={() => updateLeaveStatus(leave._id, "Approved")}
-                                  sx={{ mr: 1, borderRadius: 8 }}
-                                >
-                                  Approve
-                                </Button>
-                                <Button
-                                  variant="outlined"
-                                  color="error"
-                                  size="small"
-                                  startIcon={<CloseIcon />}
-                                  onClick={() => updateLeaveStatus(leave._id, "Rejected")}
-                                  sx={{ borderRadius: 8 }}
-                                >
-                                  Reject
-                                </Button>
+                                {isSmall ? (
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => handleActionMenuOpen(e, leave)}
+                                  >
+                                    <MoreVertIcon fontSize="small" />
+                                  </IconButton>
+                                ) : (
+                                  <>
+                                    <Button
+                                      variant="outlined"
+                                      color="success"
+                                      size="small"
+                                      startIcon={<CheckIcon />}
+                                      onClick={() => updateLeaveStatus(leave._id, "Approved")}
+                                      sx={{ mr: 1, borderRadius: 8 }}
+                                    >
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      variant="outlined"
+                                      color="error"
+                                      size="small"
+                                      startIcon={<CloseIcon />}
+                                      onClick={() => updateLeaveStatus(leave._id, "Rejected")}
+                                      sx={{ borderRadius: 8 }}
+                                    >
+                                      Reject
+                                    </Button>
+                                  </>
+                                )}
                               </TableCell>
                             </StyledTableRow>
                           ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                          <TableCell colSpan={isSmall ? 5 : 6} align="center" sx={{ py: 3 }}>
                             <Typography variant="body2" color="text.secondary">
                               No pending leave requests found
                             </Typography>
@@ -959,40 +1100,40 @@ const AdminDashboard = () => {
                       )}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </ResponsiveTableContainer>
               </Paper>
             </Box>
 
             {/* Employee Management */}
-            <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: 'wrap', gap: 1 }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                 Employee Management
               </Typography>
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<AddIcon />}
+                startIcon={!isSmall && <AddIcon />}
                 onClick={() => setOpen(true)}
                 sx={{
                   borderRadius: 8,
-                  px: 3,
+                  px: isSmall ? 2 : 3,
                   boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
                   "&:hover": {
                     boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
                   },
                 }}
               >
-                Add Employee
+                {isSmall ? <AddIcon /> : "Add Employee"}
               </Button>
             </Box>
 
             <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-              <TableContainer>
+              <ResponsiveTableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
                       <StyledTableCell>Name</StyledTableCell>
-                      <StyledTableCell>Email</StyledTableCell>
+                      {!isSmall && <StyledTableCell>Email</StyledTableCell>}
                       <StyledTableCell>Role</StyledTableCell>
                       <StyledTableCell align="right">Actions</StyledTableCell>
                     </TableRow>
@@ -1000,7 +1141,7 @@ const AdminDashboard = () => {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                        <TableCell colSpan={isSmall ? 3 : 4} align="center" sx={{ py: 3 }}>
                           <CircularProgress size={30} />
                           <Typography variant="body2" sx={{ mt: 1 }}>
                             Loading employees...
@@ -1014,8 +1155,8 @@ const AdminDashboard = () => {
                             <Box sx={{ display: "flex", alignItems: "center" }}>
                               <Avatar
                                 sx={{
-                                  width: 32,
-                                  height: 32,
+                                  width: isSmall ? 24 : 32,
+                                  height: isSmall ? 24 : 32,
                                   mr: 1,
                                   bgcolor: user.role === "admin" ? "secondary.main" : "primary.main",
                                 }}
@@ -1025,7 +1166,7 @@ const AdminDashboard = () => {
                               {user.name}
                             </Box>
                           </TableCell>
-                          <TableCell>{user.email}</TableCell>
+                          {!isSmall && <TableCell>{user.email}</TableCell>}
                           <TableCell>
                             <StatusChip
                               label={user.role === "admin" ? "Admin" : "Employee"}
@@ -1041,7 +1182,7 @@ const AdminDashboard = () => {
                               onClick={() => handleEmployeeClick(user.name)}
                               sx={{ borderRadius: 8 }}
                             >
-                              View History
+                              {isSmall ? "View" : "View History"}
                             </Button>
                           </TableCell>
                         </StyledTableRow>
@@ -1049,7 +1190,7 @@ const AdminDashboard = () => {
                     )}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </ResponsiveTableContainer>
             </Paper>
           </>
         )}
@@ -1057,7 +1198,7 @@ const AdminDashboard = () => {
         {activeTab === 1 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                 Leave Calendar
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -1072,27 +1213,40 @@ const AdminDashboard = () => {
             >
               <Box
                 sx={{
-                  p: 2,
+                  p: isSmall ? 1 : 2,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
                   borderBottom: "1px solid rgba(0,0,0,0.08)",
                 }}
               >
-                <Button startIcon={<ChevronLeftIcon />} onClick={handlePrevMonth} sx={{ borderRadius: 8 }}>
-                  Previous
+                <Button 
+                  startIcon={<ChevronLeftIcon />} 
+                  onClick={handlePrevMonth} 
+                  sx={{ borderRadius: 8, p: isSmall ? '4px 8px' : undefined }}
+                  size={isSmall ? "small" : "medium"}
+                >
+                  {isSmall ? "" : "Previous"}
                 </Button>
-                <Typography variant="h6" sx={{ fontWeight: "medium" }}>
-                  {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                <Typography variant="h6" sx={{ fontWeight: "medium", fontSize: isSmall ? '0.9rem' : '1.25rem' }}>
+                  {currentMonth.toLocaleDateString("en-US", { 
+                    month: isSmall ? "short" : "long", 
+                    year: "numeric" 
+                  })}
                 </Typography>
-                <Button endIcon={<ChevronRightIcon />} onClick={handleNextMonth} sx={{ borderRadius: 8 }}>
-                  Next
+                <Button 
+                  endIcon={<ChevronRightIcon />} 
+                  onClick={handleNextMonth} 
+                  sx={{ borderRadius: 8, p: isSmall ? '4px 8px' : undefined }}
+                  size={isSmall ? "small" : "medium"}
+                >
+                  {isSmall ? "" : "Next"}
                 </Button>
               </Box>
 
               {/* Calendar Grid */}
-              <Box sx={{ p: 2 }}>
-                <Grid container spacing={1} sx={{ mb: 2 }}>
+              <Box sx={{ p: isSmall ? 1 : 2 }}>
+                <Grid container spacing={isSmall ? 0.5 : 1} sx={{ mb: isSmall ? 1 : 2 }}>
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
                     <Grid item xs={12 / 7} key={index}>
                       <Box
@@ -1100,15 +1254,16 @@ const AdminDashboard = () => {
                           textAlign: "center",
                           fontWeight: "medium",
                           color: index === 0 || index === 6 ? "error.main" : "inherit",
+                          fontSize: isSmall ? '0.7rem' : 'inherit',
                         }}
                       >
-                        {day}
+                        {isSmall ? day.charAt(0) : day}
                       </Box>
                     </Grid>
                   ))}
                 </Grid>
 
-                <Grid container spacing={1}>
+                <Grid container spacing={isSmall ? 0.5 : 1}>
                   {calendarData.map((day, index) => (
                     <Grid item xs={12 / 7} key={index}>
                       {day.day && (
@@ -1118,8 +1273,11 @@ const AdminDashboard = () => {
                           hasLeave={day.leaves.length > 0}
                           onClick={() => handleDateClick(day.date, day.leaves)}
                         >
-                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: day.isToday ? "bold" : "normal" }}>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: isSmall ? 0.5 : 1 }}>
+                            <Typography variant="body2" sx={{ 
+                              fontWeight: day.isToday ? "bold" : "normal",
+                              fontSize: isSmall ? '0.7rem' : 'inherit'
+                            }}>
                               {day.day}
                             </Typography>
                             {day.leaves.length > 0 && (
@@ -1127,28 +1285,30 @@ const AdminDashboard = () => {
                                 label={day.leaves.length}
                                 size="small"
                                 sx={{
-                                  height: "18px",
-                                  fontSize: "10px",
+                                  height: isSmall ? "14px" : "18px",
+                                  fontSize: isSmall ? "8px" : "10px",
                                   bgcolor: "primary.main",
                                   color: "white",
                                 }}
                               />
                             )}
                           </Box>
-                          <Box sx={{ overflow: "hidden", maxHeight: "54px" }}>
-                            {day.leaves.slice(0, 3).map((leave, i) => (
-                              <LeaveIndicator key={i} status={leave.status}>
-                                <Typography variant="caption" sx={{ fontSize: "10px", fontWeight: "medium" }}>
-                                  {leave.userId}
+                          {!isSmall && (
+                            <Box sx={{ overflow: "hidden", maxHeight: "54px" }}>
+                              {day.leaves.slice(0, 3).map((leave, i) => (
+                                <LeaveIndicator key={i} status={leave.status}>
+                                  <Typography variant="caption" sx={{ fontSize: "10px", fontWeight: "medium" }}>
+                                    {leave.userId}
+                                  </Typography>
+                                </LeaveIndicator>
+                              ))}
+                              {day.leaves.length > 3 && (
+                                <Typography variant="caption" sx={{ fontSize: "10px", color: "text.secondary" }}>
+                                  +{day.leaves.length - 3} more
                                 </Typography>
-                              </LeaveIndicator>
-                            ))}
-                            {day.leaves.length > 3 && (
-                              <Typography variant="caption" sx={{ fontSize: "10px", color: "text.secondary" }}>
-                                +{day.leaves.length - 3} more
-                              </Typography>
-                            )}
-                          </Box>
+                              )}
+                            </Box>
+                          )}
                         </CalendarDay>
                       )}
                     </Grid>
@@ -1162,29 +1322,34 @@ const AdminDashboard = () => {
               <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
                 <Box
                   sx={{
-                    p: 2,
+                    p: isSmall ? 1.5 : 2,
                     borderBottom: "1px solid rgba(0,0,0,0.08)",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: "medium", display: "flex", alignItems: "center" }}>
-                    <TodayIcon sx={{ mr: 1 }} />
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: "medium", 
+                    display: "flex", 
+                    alignItems: "center",
+                    fontSize: isSmall ? '0.9rem' : '1.25rem'
+                  }}>
+                    <TodayIcon sx={{ mr: 1, fontSize: isSmall ? '1rem' : '1.5rem' }} />
                     {formatDate(selectedDate)}
                   </Typography>
                   <IconButton size="small" onClick={() => setSelectedDate(null)}>
-                    <CloseIcon />
+                    <CloseIcon fontSize={isSmall ? "small" : "medium"} />
                   </IconButton>
                 </Box>
-                <TableContainer>
+                <ResponsiveTableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
                         <StyledTableCell>Employee</StyledTableCell>
                         <StyledTableCell>Start Date</StyledTableCell>
                         <StyledTableCell>End Date</StyledTableCell>
-                        <StyledTableCell>Reason</StyledTableCell>
+                        {!isSmall && <StyledTableCell>Reason</StyledTableCell>}
                         <StyledTableCell>Status</StyledTableCell>
                       </TableRow>
                     </TableHead>
@@ -1194,15 +1359,15 @@ const AdminDashboard = () => {
                           <StyledTableRow key={index}>
                             <TableCell>
                               <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: "primary.main" }}>
+                                <Avatar sx={{ width: isSmall ? 24 : 32, height: isSmall ? 24 : 32, mr: 1, bgcolor: "primary.main" }}>
                                   {getInitials(leave.userId)}
                                 </Avatar>
-                                {leave.userId}
+                                {isSmall ? getInitials(leave.userId) : leave.userId}
                               </Box>
                             </TableCell>
                             <TableCell>{leave.startDate}</TableCell>
                             <TableCell>{leave.endDate}</TableCell>
-                            <TableCell>{leave.reason}</TableCell>
+                            {!isSmall && <TableCell>{leave.reason}</TableCell>}
                             <TableCell>
                               <StatusChip label={leave.status} status={leave.status} size="small" />
                             </TableCell>
@@ -1210,7 +1375,7 @@ const AdminDashboard = () => {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                          <TableCell colSpan={isSmall ? 4 : 5} align="center" sx={{ py: 3 }}>
                             <Typography variant="body2" color="text.secondary">
                               No leaves found for this date
                             </Typography>
@@ -1219,7 +1384,7 @@ const AdminDashboard = () => {
                       )}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </ResponsiveTableContainer>
               </Paper>
             )}
           </>
@@ -1229,7 +1394,7 @@ const AdminDashboard = () => {
         {activeTab === 3 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                 Leave History
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -1242,28 +1407,33 @@ const AdminDashboard = () => {
               sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}
             >
               <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                <Tabs value={historyTab} onChange={handleHistoryTabChange} aria-label="history tabs">
-                  <StyledTab label="Leave Distribution" />
-                  <StyledTab label="Monthly Trends" />
+                <Tabs 
+                  value={historyTab} 
+                  onChange={handleHistoryTabChange} 
+                  aria-label="history tabs"
+                  variant={isSmall ? "fullWidth" : "standard"}
+                >
+                  <StyledTab label={isSmall ? "Distribution" : "Leave Distribution"} />
+                  <StyledTab label={isSmall ? "Trends" : "Monthly Trends"} />
                 </Tabs>
               </Box>
 
               {historyTab === 0 && (
-                <Box sx={{ p: 3 }}>
-                  <Grid container spacing={3}>
+                <Box sx={{ p: isSmall ? 1.5 : 3 }}>
+                  <Grid container spacing={isSmall ? 2 : 3}>
                     <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium" }}>
+                      <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                         Leave Distribution by Type
                       </Typography>
-                      <Box sx={{ height: 300 }}>
+                      <Box sx={{ height: isSmall ? 200 : 300 }}>
                         <LeaveTypeDistribution data={leaveStats} />
                       </Box>
                     </Grid>
                     <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium" }}>
+                      <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                         Employee Leave Distribution
                       </Typography>
-                      <Box sx={{ height: 400 }}>
+                      <Box sx={{ height: isSmall ? 300 : 400 }}>
                         <EmployeeLeaveDistribution data={overallStats.leavesByEmployee} />
                       </Box>
                     </Grid>
@@ -1272,11 +1442,11 @@ const AdminDashboard = () => {
               )}
 
               {historyTab === 1 && (
-                <Box sx={{ p: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium" }}>
+                <Box sx={{ p: isSmall ? 1.5 : 3 }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                     Monthly Leave Trends
                   </Typography>
-                  <Box sx={{ height: 400 }}>
+                  <Box sx={{ height: isSmall ? 300 : 400 }}>
                     <LeaveHistoryChart data={leaveStats} />
                   </Box>
                 </Box>
@@ -1284,29 +1454,33 @@ const AdminDashboard = () => {
             </Paper>
 
             <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                 Employee Leave History
               </Typography>
             </Box>
 
             <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-              <TableContainer>
+              <ResponsiveTableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
                       <StyledTableCell>Employee</StyledTableCell>
-                      <StyledTableCell>Total Leaves</StyledTableCell>
-                      <StyledTableCell>Sick Leave</StyledTableCell>
-                      <StyledTableCell>Casual Leave</StyledTableCell>
-                      <StyledTableCell>Medical Leave</StyledTableCell>
-                      <StyledTableCell>Work From Home</StyledTableCell>
+                      <StyledTableCell>Total</StyledTableCell>
+                      {!isSmall && (
+                        <>
+                          <StyledTableCell>Sick</StyledTableCell>
+                          <StyledTableCell>Casual</StyledTableCell>
+                          <StyledTableCell>Medical</StyledTableCell>
+                          <StyledTableCell>WFH</StyledTableCell>
+                        </>
+                      )}
                       <StyledTableCell align="right">Actions</StyledTableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                        <TableCell colSpan={isSmall ? 3 : 7} align="center" sx={{ py: 3 }}>
                           <CircularProgress size={30} />
                           <Typography variant="body2" sx={{ mt: 1 }}>
                             Loading employee data...
@@ -1320,17 +1494,21 @@ const AdminDashboard = () => {
                           <StyledTableRow key={user._id}>
                             <TableCell>
                               <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: "primary.main" }}>
+                                <Avatar sx={{ width: isSmall ? 24 : 32, height: isSmall ? 24 : 32, mr: 1, bgcolor: "primary.main" }}>
                                   {getInitials(user.name)}
                                 </Avatar>
                                 {user.name}
                               </Box>
                             </TableCell>
                             <TableCell>{user.totalLeaves || 12}</TableCell>
-                            <TableCell>{user.sickleave || 0}</TableCell>
-                            <TableCell>{user.casualleave || 0}</TableCell>
-                            <TableCell>{user.medicalleave || 0}</TableCell>
-                            <TableCell>{user.Workfromhome || 0}</TableCell>
+                            {!isSmall && (
+                              <>
+                                <TableCell>{user.sickleave || 0}</TableCell>
+                                <TableCell>{user.casualleave || 0}</TableCell>
+                                <TableCell>{user.medicalleave || 0}</TableCell>
+                                <TableCell>{user.Workfromhome || 0}</TableCell>
+                              </>
+                            )}
                             <TableCell align="right">
                               <Button
                                 variant="contained"
@@ -1339,7 +1517,7 @@ const AdminDashboard = () => {
                                 onClick={() => handleEmployeeClick(user.name)}
                                 sx={{ borderRadius: 8 }}
                               >
-                                View Details
+                                {isSmall ? "View" : "View Details"}
                               </Button>
                             </TableCell>
                           </StyledTableRow>
@@ -1347,7 +1525,7 @@ const AdminDashboard = () => {
                     )}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </ResponsiveTableContainer>
             </Paper>
           </>
         )}
@@ -1359,7 +1537,7 @@ const AdminDashboard = () => {
         {activeTab === 4 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
                 Leave Reports
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -1367,7 +1545,7 @@ const AdminDashboard = () => {
               </Typography>
             </Box>
 
-            <Grid container spacing={3}>
+            <Grid container spacing={isSmall ? 2 : 3}>
               <Grid item xs={12} md={6}>
                 <Paper
                   elevation={0}
@@ -1375,14 +1553,14 @@ const AdminDashboard = () => {
                     borderRadius: 2,
                     overflow: "hidden",
                     border: "1px solid rgba(0,0,0,0.08)",
-                    p: 3,
+                    p: isSmall ? 1.5 : 3,
                     height: "100%",
                   }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium" }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                     Leave Distribution by Type
                   </Typography>
-                  <Box sx={{ height: 300 }}>
+                  <Box sx={{ height: isSmall ? 200 : 300 }}>
                     <LeaveTypeDistribution data={leaveStats} />
                   </Box>
                 </Paper>
@@ -1394,14 +1572,14 @@ const AdminDashboard = () => {
                     borderRadius: 2,
                     overflow: "hidden",
                     border: "1px solid rgba(0,0,0,0.08)",
-                    p: 3,
+                    p: isSmall ? 1.5 : 3,
                     height: "100%",
                   }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium" }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                     Monthly Leave Trends
                   </Typography>
-                  <Box sx={{ height: 300 }}>
+                  <Box sx={{ height: isSmall ? 200 : 300 }}>
                     <MonthlyLeaveReport data={overallStats.leavesByMonth} />
                   </Box>
                 </Paper>
@@ -1409,12 +1587,12 @@ const AdminDashboard = () => {
               <Grid item xs={12}>
                 <Paper
                   elevation={0}
-                  sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", p: 3 }}
+                  sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", p: isSmall ? 1.5 : 3 }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium" }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
                     Employee Leave Comparison
                   </Typography>
-                  <Box sx={{ height: 400 }}>
+                  <Box sx={{ height: isSmall ? 300 : 400 }}>
                     <EmployeeLeaveComparison data={overallStats.leavesByEmployee} />
                   </Box>
                 </Paper>
@@ -1427,9 +1605,15 @@ const AdminDashboard = () => {
         {activeTab === 5 && <GenerateSalary />}
 
         {/* Add Employee Dialog */}
-        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog 
+          open={open} 
+          onClose={() => setOpen(false)} 
+          maxWidth="sm" 
+          fullWidth
+          fullScreen={isSmall}
+        >
           <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1.1rem' : '1.25rem' }}>
               Add New Employee
             </Typography>
           </DialogTitle>
@@ -1577,7 +1761,7 @@ const AdminDashboard = () => {
               onClick={handleAddEmployee}
               color="primary"
               variant="contained"
-              startIcon={<AddIcon />}
+              startIcon={!isSmall && <AddIcon />}
               sx={{
                 borderRadius: 8,
                 boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
@@ -1586,15 +1770,21 @@ const AdminDashboard = () => {
                 },
               }}
             >
-              Add Employee
+              {isSmall ? <AddIcon /> : "Add Employee"}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Employee Leave History Dialog */}
-        <Dialog open={Boolean(selectedEmployee)} onClose={() => setSelectedEmployee(null)} maxWidth="md" fullWidth>
+        <Dialog 
+          open={Boolean(selectedEmployee)} 
+          onClose={() => setSelectedEmployee(null)} 
+          maxWidth="md" 
+          fullWidth
+          fullScreen={isSmall}
+        >
           <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1.1rem' : '1.25rem' }}>
               {selectedEmployee}'s Leave History
             </Typography>
           </DialogTitle>
@@ -1605,7 +1795,7 @@ const AdminDashboard = () => {
                   <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "medium" }}>
                     Leave Distribution
                   </Typography>
-                  <Box sx={{ height: 300 }}>
+                  <Box sx={{ height: isSmall ? 200 : 300 }}>
                     <LeaveHistoryChart
                       data={{
                         sickLeave: leaveHistory
@@ -1624,15 +1814,15 @@ const AdminDashboard = () => {
                     />
                   </Box>
                 </Box>
-                <TableContainer>
+                <ResponsiveTableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
                         <StyledTableCell>Start Date</StyledTableCell>
                         <StyledTableCell>End Date</StyledTableCell>
                         <StyledTableCell>Status</StyledTableCell>
-                        <StyledTableCell>Days Taken</StyledTableCell>
-                        <StyledTableCell>Reason</StyledTableCell>
+                        {!isSmall && <StyledTableCell>Days Taken</StyledTableCell>}
+                        {!isSmall && <StyledTableCell>Reason</StyledTableCell>}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1643,13 +1833,13 @@ const AdminDashboard = () => {
                           <TableCell>
                             <StatusChip label={leave.status} status={leave.status} size="small" />
                           </TableCell>
-                          <TableCell>{leave.daysTaken}</TableCell>
-                          <TableCell>{leave.reason}</TableCell>
+                          {!isSmall && <TableCell>{leave.daysTaken}</TableCell>}
+                          {!isSmall && <TableCell>{leave.reason}</TableCell>}
                         </StyledTableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </ResponsiveTableContainer>
               </>
             ) : (
               <Box sx={{ py: 4, textAlign: "center" }}>
@@ -1676,10 +1866,35 @@ const AdminDashboard = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Action Menu for Mobile */}
+        <Menu
+          anchorEl={actionMenuAnchorEl}
+          open={Boolean(actionMenuAnchorEl)}
+          onClose={handleActionMenuClose}
+        >
+          {selectedActionUser && (
+            <>
+              <MenuItem onClick={() => {
+                updateLeaveStatus(selectedActionUser._id, "Approved");
+                handleActionMenuClose();
+              }}>
+                <CheckIcon fontSize="small" color="success" sx={{ mr: 1 }} />
+                Approve
+              </MenuItem>
+              <MenuItem onClick={() => {
+                updateLeaveStatus(selectedActionUser._id, "Rejected");
+                handleActionMenuClose();
+              }}>
+                <CloseIcon fontSize="small" color="error" sx={{ mr: 1 }} />
+                Reject
+              </MenuItem>
+            </>
+          )}
+        </Menu>
       </Main>
     </Box>
   )
 }
 
 export default AdminDashboard
-
