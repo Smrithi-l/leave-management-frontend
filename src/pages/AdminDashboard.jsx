@@ -273,6 +273,9 @@ const AdminDashboard = () => {
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState(null)
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState(null)
   const [selectedActionUser, setSelectedActionUser] = useState(null)
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false)
+  const [leaveComment, setLeaveComment] = useState("")
+  const [leaveToUpdate, setLeaveToUpdate] = useState(null)
   const [newEmployee, setNewEmployee] = useState({
     name: "",
     email: "",
@@ -397,19 +400,37 @@ const AdminDashboard = () => {
     }
   }
 
-  const updateLeaveStatus = async (id, status) => {
+  const updateLeaveStatus = async (id, status, comment = "") => {
     try {
       const token = localStorage.getItem("token")
       await axios.put(
         `https://leave-management-backend-sa2e.onrender.com/api/dashboard/update-leave/${id}`,
-        { status },
+        { status, comment },
         { headers: { Authorization: `Bearer ${token}` } },
       )
       fetchLeaveRequests()
       alert(`Leave request ${status.toLowerCase()} successfully!`)
+      setLeaveComment("")
     } catch (error) {
       console.error("Error updating leave request:", error)
       alert("Failed to update leave request.")
+    }
+  }
+
+  const handleLeaveAction = (leave, status) => {
+    if (status === "Approved") {
+      setLeaveToUpdate({ id: leave._id, status })
+      setCommentDialogOpen(true)
+    } else {
+      updateLeaveStatus(leave._id, status)
+    }
+  }
+
+  const handleCommentSubmit = () => {
+    if (leaveToUpdate) {
+      updateLeaveStatus(leaveToUpdate.id, leaveToUpdate.status, leaveComment)
+      setCommentDialogOpen(false)
+      setLeaveToUpdate(null)
     }
   }
 
@@ -1069,7 +1090,7 @@ const AdminDashboard = () => {
                                       color="success"
                                       size="small"
                                       startIcon={<CheckIcon />}
-                                      onClick={() => updateLeaveStatus(leave._id, "Approved")}
+                                      onClick={() => handleLeaveAction(leave, "Approved")}
                                       sx={{ mr: 1, borderRadius: 8 }}
                                     >
                                       Approve
@@ -1876,7 +1897,7 @@ const AdminDashboard = () => {
           {selectedActionUser && (
             <>
               <MenuItem onClick={() => {
-                updateLeaveStatus(selectedActionUser._id, "Approved");
+                handleLeaveAction(selectedActionUser, "Approved");
                 handleActionMenuClose();
               }}>
                 <CheckIcon fontSize="small" color="success" sx={{ mr: 1 }} />
@@ -1892,6 +1913,60 @@ const AdminDashboard = () => {
             </>
           )}
         </Menu>
+
+        {/* Comment Dialog */}
+        <Dialog
+          open={commentDialogOpen}
+          onClose={() => setCommentDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          fullScreen={isSmall}
+        >
+          <DialogTitle sx={{ pb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1.1rem' : '1.25rem' }}>
+              Add Comment for Approval
+            </Typography>
+          </DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Add an optional message that will be included in the email notification to the employee.
+            </Typography>
+            <TextField
+              fullWidth
+              label="Comment"
+              multiline
+              rows={4}
+              value={leaveComment}
+              onChange={(e) => setLeaveComment(e.target.value)}
+              placeholder="Great job on your recent project! Enjoy your time off."
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button 
+              onClick={() => setCommentDialogOpen(false)} 
+              color="inherit" 
+              variant="outlined" 
+              sx={{ borderRadius: 8 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCommentSubmit}
+              color="primary"
+              variant="contained"
+              startIcon={!isSmall && <CheckIcon />}
+              sx={{
+                borderRadius: 8,
+                boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
+                "&:hover": {
+                  boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
+                },
+              }}
+            >
+              {isSmall ? <CheckIcon /> : "Approve with Comment"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Main>
     </Box>
   )
