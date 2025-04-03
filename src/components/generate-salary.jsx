@@ -200,7 +200,7 @@ export default function GenerateSalary() {
         setAttendanceData(attendanceResponse.data)
         console.log("Attendance data for", employee.name, ":", attendanceResponse.data)
       } else {
-        // If no specific attendance data, use default values
+
         setAttendanceData({
           totalDays: 30,
           presentDays: 30,
@@ -355,19 +355,13 @@ export default function GenerateSalary() {
           if (attendanceResponse.data && attendanceResponse.data.employee) {
             employeeAttendance = attendanceResponse.data
           }
-
-          // Calculate salary components
           const originalSalary = employee.salary || 0
           const dailyWage = originalSalary / 30
           const absentDays = employeeAttendance.absentDays || 0
           const deduction = dailyWage * absentDays
-
-          // Calculate overtime bonus if available
           const overtimeHours = employeeAttendance.totalOT ? Number.parseFloat(employeeAttendance.totalOT) : 0
-          const overtimeRate = (dailyWage / 8) * 1.5 // Assuming 8-hour workday and 1.5x overtime rate
+          const overtimeRate = (dailyWage / 8) * 1.5 
           const overtimeBonus = overtimeHours * overtimeRate
-
-          // Calculate net salary
           const netSalary = originalSalary - deduction + overtimeBonus
 
           // Call the update-salary endpoint
@@ -564,46 +558,187 @@ export default function GenerateSalary() {
     }
 
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>Salary Slip - ${selectedEmployee?.name || "Employee"}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .company-name { font-size: 24px; font-weight: bold; color: #3f51b5; }
-            .company-info { color: #666; font-size: 14px; }
-            .slip-title { font-size: 18px; text-align: right; }
-            .slip-date { color: #666; font-size: 14px; text-align: right; }
-            .divider { border-top: 1px solid #ddd; margin: 15px 0; }
-            .employee-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-            .info-label { color: #666; font-size: 14px; }
-            .info-value { font-weight: 500; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-            th { font-weight: bold; }
-            .section-header { background-color: #f5f5f5; font-weight: 500; }
-            .total-row { font-weight: bold; }
-            .net-salary { font-size: 18px; font-weight: bold; color: #3f51b5; }
-            .footer { margin-top: 40px; display: flex; justify-content: space-between; }
-            .signature-line { margin-top: 40px; border-top: 1px solid black; width: 150px; }
-            .disclaimer { margin-top: 30px; background-color: #f5f5f5; padding: 15px; border-radius: 4px; font-size: 12px; color: #666; }
-            .attendance-info { margin: 15px 0; padding: 10px; background-color: #f9f9f9; border-radius: 4px; }
-            .attendance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-            @media print {
-              body { -webkit-print-color-adjust: exact; }
-              button { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          ${content.innerHTML}
-          <div style="text-align: center; margin-top: 30px;">
-            <button onclick="window.print(); window.close();" style="padding: 10px 20px; background: #3f51b5; color: white; border: none; border-radius: 4px; cursor: pointer;">
-              Print Salary Slip
-            </button>
-          </div>
-        </body>
-      </html>
+<html>
+  <head>
+    <title>Salary Slip - ${selectedEmployee?.name || "Employee"}</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 2cm;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: auto;
+        background: white;
+      }
+      .container {
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #3f51b5;
+        padding-bottom: 15px;
+      }
+      .company-logo {
+        max-width: 120px;
+      }
+      .company-name {
+        font-size: 22px;
+        font-weight: bold;
+        color: #3f51b5;
+        text-align: center;
+        flex-grow: 1;
+      }
+      .salary-slip-title {
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+      }
+      .employee-details, .attendance-info {
+        margin: 20px 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 10px;
+        background: #f9f9f9;
+        border-radius: 6px;
+      }
+      .info-label {
+        color: #666;
+        font-weight: bold;
+      }
+      .info-value {
+        font-weight: 500;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th, td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background: #f5f5f5;
+        font-weight: bold;
+      }
+      .total-row {
+        font-weight: bold;
+        background: #f5f5f5;
+      }
+      .net-salary {
+        font-size: 20px;
+        font-weight: bold;
+        color: #3f51b5;
+        text-align: right;
+      }
+      .footer {
+        margin-top: 30px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .signature-line {
+        margin-top: 30px;
+        border-top: 1px solid black;
+        width: 150px;
+        text-align: center;
+        padding-top: 5px;
+      }
+      .disclaimer {
+        margin-top: 20px;
+        padding: 10px;
+        font-size: 12px;
+        color: #666;
+        background: #f5f5f5;
+        border-radius: 4px;
+        text-align: center;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+        }
+        button {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+<img src="1.jpg" class="company-logo" alt="Company Logo">
+
+        <div class="company-name">Closerlook Digital Software Services Private Lt</div>
+        <div class="salary-slip-title">Salary Slip</div>
+      </div>
+
+      <div class="employee-details">
+        <div><span class="info-label">Employee Name:</span> ${selectedEmployee?.name}</div>
+        <div><span class="info-label">Employee ID:</span> ${selectedEmployee?._id}</div>
+        <div><span class="info-label">Designation:</span> ${selectedEmployee?.role}</div>
+        <div><span class="info-label">Month & Year:</span> ${new Date().toLocaleString("default", { month: "long", year: "numeric" })}</div>
+      </div>
+
+      <div class="attendance-info">
+        <div><span class="info-label">Total Days:</span> 30</div>
+        <div><span class="info-label">Present Days:</span> ${attendanceData?.presentDays || 0}</div>
+        <div><span class="info-label">Absent Days:</span> ${attendanceData?.absentDays || 0}</div>
+        <div><span class="info-label">Overtime Hours:</span> ${attendanceData?.totalOT || 0}</div>
+      </div>
+
+      <table>
+        <tr>
+          <th>Earnings</th>
+          <th>Amount</th>
+          <th>Deductions</th>
+          <th>Amount</th>
+        </tr>
+        <tr>
+          <td>Basic Salary</td>
+          <td>${salaryCalculation?.originalSalary.toFixed(2)}</td>
+          <td>Leave Deductions</td>
+          <td>${salaryCalculation?.deduction.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td>Overtime Bonus</td>
+          <td>${salaryCalculation?.overtimeBonus.toFixed(2)}</td>
+          <td>Other Deductions</td>
+          <td>0.00</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="2" class="net-salary">Net Salary: ${salaryCalculation?.netSalary.toFixed(2)}</td>
+          <td colspan="2"></td>
+        </tr>
+      </table>
+
+      <div class="footer">
+        <div class="signature-line">Employee Signature</div>
+        <div class="signature-line">HR Signature</div>
+      </div>
+
+      <div class="disclaimer">
+        This is a computer-generated document and does not require a signature. If you have any queries regarding your salary, please contact the HR department.
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+      <button onclick="window.print(); window.close();" style="padding: 10px 20px; background: #3f51b5; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Print Salary Slip
+      </button>
+    </div>
+  </body>
+</html>
+
     `)
 
     printWindow.document.close()
