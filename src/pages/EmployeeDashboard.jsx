@@ -55,6 +55,8 @@ import {
   Drawer,
   CssBaseline,
   SwipeableDrawer,
+  ThemeProvider,
+  createTheme,
 } from "@mui/material"
 import {
   CalendarMonth,
@@ -82,6 +84,10 @@ import {
   Group,
   Info,
   Help,
+  Spa,
+  Healing,
+  Home,
+  AccessTime,
 } from "@mui/icons-material"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
@@ -89,13 +95,277 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
 import { format, differenceInDays } from "date-fns"
 import axios from "axios"
 
+// Create a custom theme with a modern, elegant design
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#6d28d9", // Deep purple
+      light: "#8b5cf6",
+      dark: "#5b21b6",
+      contrastText: "#ffffff",
+    },
+    secondary: {
+      main: "#ec4899", // Pink
+      light: "#f472b6",
+      dark: "#db2777",
+      contrastText: "#ffffff",
+    },
+    success: {
+      main: "#10b981", // Emerald
+      light: "#34d399",
+      dark: "#059669",
+    },
+    warning: {
+      main: "#f59e0b", // Amber
+      light: "#fbbf24",
+      dark: "#d97706",
+    },
+    error: {
+      main: "#ef4444", // Red
+      light: "#f87171",
+      dark: "#dc2626",
+    },
+    info: {
+      main: "#06b6d4", // Cyan
+      light: "#22d3ee",
+      dark: "#0891b2",
+    },
+    background: {
+      default: "#f8fafc",
+      paper: "#ffffff",
+    },
+    text: {
+      primary: "#1e293b",
+      secondary: "#64748b",
+    },
+    grey: {
+      50: "#f8fafc",
+      100: "#f1f5f9",
+      200: "#e2e8f0",
+      300: "#cbd5e1",
+      400: "#94a3b8",
+      500: "#64748b",
+      600: "#475569",
+      700: "#334155",
+      800: "#1e293b",
+      900: "#0f172a",
+    },
+  },
+  typography: {
+    fontFamily: '"Plus Jakarta Sans", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      fontWeight: 800,
+      letterSpacing: "-0.025em",
+    },
+    h2: {
+      fontWeight: 700,
+      letterSpacing: "-0.025em",
+    },
+    h3: {
+      fontWeight: 700,
+      letterSpacing: "-0.025em",
+    },
+    h4: {
+      fontWeight: 600,
+      letterSpacing: "-0.025em",
+    },
+    h5: {
+      fontWeight: 600,
+    },
+    h6: {
+      fontWeight: 600,
+    },
+    button: {
+      textTransform: "none",
+      fontWeight: 600,
+    },
+    subtitle1: {
+      fontWeight: 500,
+    },
+    subtitle2: {
+      fontWeight: 500,
+    },
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  shadows: [
+    "none",
+    "0px 1px 2px rgba(15, 23, 42, 0.1)",
+    "0px 2px 4px rgba(15, 23, 42, 0.08)",
+    "0px 4px 8px rgba(15, 23, 42, 0.08)",
+    "0px 8px 16px rgba(15, 23, 42, 0.08)",
+    "0px 16px 24px rgba(15, 23, 42, 0.08)",
+    "0px 20px 32px rgba(15, 23, 42, 0.08)",
+    ...Array(18).fill("none"), // Fill the rest with "none"
+  ],
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          boxShadow: "none",
+          padding: "10px 20px",
+          "&:hover": {
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+            transform: "translateY(-1px)",
+          },
+          transition: "all 0.2s ease",
+        },
+        contained: {
+          "&.MuiButton-containedPrimary": {
+            background: "linear-gradient(135deg, #6d28d9, #8b5cf6)",
+          },
+          "&.MuiButton-containedSecondary": {
+            background: "linear-gradient(135deg, #ec4899, #f472b6)",
+          },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+          overflow: "hidden",
+          border: "1px solid rgba(226, 232, 240, 0.8)",
+          transition: "transform 0.3s ease, box-shadow 0.3s ease",
+          "&:hover": {
+            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.1)",
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          padding: "16px",
+          borderColor: "rgba(226, 232, 240, 0.8)",
+        },
+        head: {
+          fontWeight: 600,
+          backgroundColor: "#f8fafc",
+          color: "#334155",
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 500,
+          borderRadius: 8,
+        },
+        filled: {
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+        },
+      },
+    },
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          margin: "4px 8px",
+          padding: "10px 16px",
+          "&.Mui-selected": {
+            backgroundColor: "rgba(109, 40, 217, 0.08)",
+            "&:hover": {
+              backgroundColor: "rgba(109, 40, 217, 0.12)",
+            },
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              left: 0,
+              top: "20%",
+              height: "60%",
+              width: 4,
+              backgroundColor: "#6d28d9",
+              borderRadius: "0 4px 4px 0",
+            },
+          },
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          borderRight: "none",
+          boxShadow: "4px 0 24px rgba(15, 23, 42, 0.08)",
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.05)",
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 10,
+          },
+        },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        outlined: {
+          borderRadius: 10,
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontSize: "1.25rem",
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          fontWeight: 600,
+          minHeight: 48,
+        },
+      },
+    },
+    MuiLinearProgress: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          height: 8,
+        },
+      },
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: {
+          borderColor: "rgba(226, 232, 240, 0.8)",
+        },
+      },
+    },
+  },
+})
+
 // Sidebar width
 const DRAWER_WIDTH = 280
 
 // Custom styled components
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  background: `linear-gradient(90deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-  boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.1)",
+  background: "#ffffff",
+  color: theme.palette.text.primary,
+  boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
   zIndex: theme.zIndex.drawer + 1,
 }))
 
@@ -103,7 +373,7 @@ const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
   flexGrow: 1,
-  padding: theme.spacing(2), // ✅ Fix: Ensure theme is passed correctly
+  padding: theme.spacing(2),
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -114,20 +384,21 @@ const Main = styled("main", {
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
     }),
-    marginLeft: 0, // Changed from DRAWER_WIDTH to 0
+    marginLeft: 0,
   }),
 }))
+
 const GlassCard = styled(Card)(({ theme }) => ({
-  background: alpha(theme.palette.background.paper, 0.8),
+  background: alpha(theme.palette.background.paper, 0.9),
   backdropFilter: "blur(10px)",
-  borderRadius: 16,
+  borderRadius: 20,
   border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
+  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.08)",
   transition: "all 0.3s ease",
   overflow: "hidden",
   "&:hover": {
     transform: "translateY(-5px)",
-    boxShadow: "0 15px 30px 0 rgba(31, 38, 135, 0.25)",
+    boxShadow: "0 15px 30px 0 rgba(31, 38, 135, 0.12)",
   },
 }))
 
@@ -147,23 +418,23 @@ const AnimatedIconButton = styled(IconButton)(({ theme }) => ({
 }))
 
 const StatusChip = styled(Chip)(({ theme, color }) => ({
-  borderRadius: 8,
+  borderRadius: 10,
   fontWeight: 600,
-  boxShadow: "0 2px 5px 0 rgba(0,0,0,0.1)",
+  boxShadow: "0 2px 5px 0 rgba(0,0,0,0.05)",
   "& .MuiChip-icon": {
     fontSize: 16,
   },
 }))
 
 const GradientButton = styled(Button)(({ theme, color = "primary" }) => ({
-  borderRadius: 8,
-  padding: "8px 16px",
+  borderRadius: 10,
+  padding: "10px 20px",
   fontWeight: 600,
   textTransform: "none",
-  background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
   color: "white",
   "&:hover": {
-    boxShadow: "0 6px 15px 0 rgba(0,0,0,0.25)",
+    boxShadow: "0 6px 15px 0 rgba(0,0,0,0.15)",
     transform: "translateY(-2px)",
   },
 }))
@@ -171,25 +442,25 @@ const GradientButton = styled(Button)(({ theme, color = "primary" }) => ({
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   borderRadius: 16,
   overflow: "hidden",
-  boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
+  boxShadow: "0 5px 15px rgba(0, 0, 0, 0.05)",
   "& .MuiTableHead-root": {
-    background: `linear-gradient(90deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+    backgroundColor: alpha(theme.palette.grey[100], 0.8),
   },
   "& .MuiTableCell-head": {
-    color: theme.palette.common.white,
+    color: theme.palette.grey[700],
     fontWeight: 600,
     padding: "16px",
   },
   "& .MuiTableRow-root:nth-of-type(even)": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.05),
+    backgroundColor: alpha(theme.palette.grey[50], 0.5),
   },
   "& .MuiTableRow-root:hover": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.1),
+    backgroundColor: alpha(theme.palette.primary.light, 0.05),
   },
 }))
 
 const StyledAvatar = styled(Avatar)(({ theme }) => ({
-  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.2)",
+  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
   border: `2px solid ${theme.palette.background.paper}`,
 }))
 
@@ -199,9 +470,9 @@ const StyledDrawer = styled(Drawer)(({ theme }) => ({
   "& .MuiDrawer-paper": {
     width: DRAWER_WIDTH,
     boxSizing: "border-box",
-    backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.paper, 0.9)})`,
+    backgroundImage: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)}, ${alpha(theme.palette.background.paper, 0.95)})`,
     backdropFilter: "blur(10px)",
-    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
     border: "none",
   },
 }))
@@ -210,9 +481,86 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: theme.spacing(2),
+  padding: theme.spacing(3, 2),
   ...theme.mixins.toolbar,
 }))
+
+const StatCard = styled(Card)(({ theme, accentColor }) => ({
+  borderRadius: 20,
+  overflow: "hidden",
+  position: "relative",
+  boxShadow: "0 10px 20px rgba(0, 0, 0, 0.05)",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+    background: accentColor || theme.palette.primary.main,
+  },
+  transition: "transform 0.3s ease, box-shadow 0.3s ease",
+  "&:hover": {
+    transform: "translateY(-5px)",
+    boxShadow: "0 15px 30px rgba(0, 0, 0, 0.1)",
+  },
+}))
+
+const CalendarCell = styled(Box)(({ theme, isSelected, hasLeave, leaveStatus, isWeekend }) => ({
+  height: 80,
+  padding: 1,
+  border: "1px solid",
+  borderColor: isSelected ? theme.palette.primary.main : theme.palette.divider,
+  borderRadius: 12,
+  position: "relative",
+  backgroundColor: hasLeave
+    ? leaveStatus === "Approved"
+      ? alpha(theme.palette.success.main, 0.1)
+      : leaveStatus === "Rejected"
+        ? alpha(theme.palette.error.main, 0.1)
+        : alpha(theme.palette.warning.main, 0.1)
+    : isWeekend
+      ? alpha(theme.palette.grey[100], 0.5)
+      : "transparent",
+  transition: "all 0.2s ease",
+  cursor: "pointer",
+  "&:hover": {
+    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+    transform: "translateY(-2px)",
+    borderColor: theme.palette.primary.light,
+  },
+}))
+
+const LeaveTypeIcon = ({ type, ...props }) => {
+  switch (type?.toLowerCase()) {
+    case "casual":
+    case "casualleave":
+      return <Spa {...props} />
+    case "sick":
+    case "sickleave":
+      return <Healing {...props} />
+    case "medical":
+    case "medicalleave":
+      return <LocalHospital {...props} />
+    case "work from home":
+    case "workfromhome":
+      return <Home {...props} />
+    default:
+      return <AccessTime {...props} />
+  }
+}
+
+// Custom icon for medical leave
+const LocalHospital = (props) => {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path
+        d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM18 14H14V18H10V14H6V10H10V6H14V10H18V14Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
 
 const EmployeeDashboard = () => {
   const theme = useTheme()
@@ -565,7 +913,7 @@ const EmployeeDashboard = () => {
               <CircularProgress size={40} />
             </Box>
           ) : leaveHistory.length === 0 ? (
-            <Paper sx={{ p: 3, textAlign: "center", borderRadius: 4 }}>
+            <Paper sx={{ p: 3, textAlign: "center", borderRadius: 16 }}>
               <Typography variant="body1" color="text.secondary">
                 No leave requests found
               </Typography>
@@ -575,7 +923,7 @@ const EmployeeDashboard = () => {
               .filter((leave) => filter === "All" || leave.status === filter)
               .map((leave, index) => (
                 <Grow in={true} key={leave._id || index} timeout={(index + 1) * 200}>
-                  <GlassCard sx={{ mb: 2 }}>
+                  <GlassCard sx={{ mb: 3 }}>
                     <CardContent sx={{ p: 3 }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -589,11 +937,11 @@ const EmployeeDashboard = () => {
                                     : leave.type === "Medical"
                                       ? "info.main"
                                       : "secondary.main",
-                              width: 32,
-                              height: 32,
+                              width: 36,
+                              height: 36,
                             }}
                           >
-                            {leave.type.charAt(0)}
+                            <LeaveTypeIcon type={leave.type} fontSize="small" />
                           </Avatar>
                           <Typography variant="subtitle1" fontWeight="600">
                             {leave.type}
@@ -606,7 +954,7 @@ const EmployeeDashboard = () => {
                         sx={{
                           p: 2,
                           borderRadius: 2,
-                          bgcolor: alpha(theme.palette.background.default, 0.5),
+                          bgcolor: alpha(theme.palette.grey[100], 0.5),
                           mb: 2,
                         }}
                       >
@@ -658,7 +1006,7 @@ const EmployeeDashboard = () => {
                           sx={{
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: alpha(theme.palette.background.default, 0.5),
+                            bgcolor: alpha(theme.palette.grey[100], 0.5),
                             fontStyle: "italic",
                           }}
                         >
@@ -734,12 +1082,12 @@ const EmployeeDashboard = () => {
                                     : leave.type === "Medical"
                                       ? "info.main"
                                       : "secondary.main",
-                              width: 24,
-                              height: 24,
+                              width: 30,
+                              height: 30,
                               fontSize: "0.75rem",
                             }}
                           >
-                            {leave.type.charAt(0)}
+                            <LeaveTypeIcon type={leave.type} fontSize="small" />
                           </Avatar>
                           <Typography variant="body2" fontWeight="medium">
                             {leave.type}
@@ -812,7 +1160,7 @@ const EmployeeDashboard = () => {
               <CircularProgress size={40} />
             </Box>
           ) : leaveRequests.length === 0 ? (
-            <Paper sx={{ p: 3, textAlign: "center", borderRadius: 4 }}>
+            <Paper sx={{ p: 3, textAlign: "center", borderRadius: 16 }}>
               <Typography variant="body1" color="text.secondary">
                 No leave requests found
               </Typography>
@@ -820,7 +1168,7 @@ const EmployeeDashboard = () => {
           ) : (
             leaveRequests.map((leave, index) => (
               <Grow in={true} key={leave._id} timeout={(index + 1) * 200}>
-                <GlassCard sx={{ mb: 2 }}>
+                <GlassCard sx={{ mb: 3 }}>
                   <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -843,7 +1191,7 @@ const EmployeeDashboard = () => {
                       sx={{
                         p: 2,
                         borderRadius: 2,
-                        bgcolor: alpha(theme.palette.background.default, 0.5),
+                        bgcolor: alpha(theme.palette.grey[100], 0.5),
                         mb: 2,
                       }}
                     >
@@ -896,14 +1244,15 @@ const EmployeeDashboard = () => {
                         >
                           Approve
                         </GradientButton>
-                        <GradientButton
+                        <Button
+                          variant="outlined"
                           color="error"
                           fullWidth
                           size="small"
                           onClick={() => handleLeaveAction(leave._id, "Rejected")}
                         >
                           Reject
-                        </GradientButton>
+                        </Button>
                       </Box>
                     )}
                   </CardContent>
@@ -954,6 +1303,7 @@ const EmployeeDashboard = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
+                        icon={<LeaveTypeIcon type={leave.type} fontSize="small" />}
                         label={leave.type}
                         size="small"
                         color={
@@ -990,13 +1340,14 @@ const EmployeeDashboard = () => {
                           >
                             Approve
                           </GradientButton>
-                          <GradientButton
+                          <Button
+                            variant="outlined"
                             color="error"
                             size="small"
                             onClick={() => handleLeaveAction(leave._id, "Rejected")}
                           >
                             Reject
-                          </GradientButton>
+                          </Button>
                         </Stack>
                       )}
                     </TableCell>
@@ -1020,7 +1371,7 @@ const EmployeeDashboard = () => {
               <CircularProgress size={40} />
             </Box>
           ) : teamMembers.length === 0 ? (
-            <Paper sx={{ p: 3, textAlign: "center", borderRadius: 4 }}>
+            <Paper sx={{ p: 3, textAlign: "center", borderRadius: 16 }}>
               <Typography variant="body1" color="text.secondary">
                 No team members found
               </Typography>
@@ -1028,7 +1379,7 @@ const EmployeeDashboard = () => {
           ) : (
             teamMembers.map((member, index) => (
               <Grow in={true} key={member._id} timeout={(index + 1) * 200}>
-                <GlassCard sx={{ mb: 2 }}>
+                <GlassCard sx={{ mb: 3 }}>
                   <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <StyledAvatar sx={{ width: 48, height: 48, bgcolor: theme.palette.primary.main }}>
@@ -1157,23 +1508,25 @@ const EmployeeDashboard = () => {
             mb: 3,
           }}
         >
-          <GradientButton
+          <Button
+            variant="outlined"
             startIcon={<ArrowBack />}
             onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
           >
             Previous
-          </GradientButton>
+          </Button>
 
           <Typography variant="h6" fontWeight="bold">
             {format(currentMonth, "MMMM yyyy")}
           </Typography>
 
-          <GradientButton
+          <Button
+            variant="outlined"
             endIcon={<ArrowForward />}
             onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
           >
             Next
-          </GradientButton>
+          </Button>
         </Box>
 
         <GlassCard>
@@ -1202,7 +1555,7 @@ const EmployeeDashboard = () => {
                         sx={{
                           height: 80,
                           p: 1,
-                          bgcolor: alpha(theme.palette.divider, 0.05),
+                          bgcolor: alpha(theme.palette.grey[100], 0.3),
                           borderRadius: 2,
                         }}
                       />
@@ -1212,32 +1565,20 @@ const EmployeeDashboard = () => {
 
                 const leave = getLeaveForDate(day)
                 const isWeekendDay = day.getDay() === 0 || day.getDay() === 6
+                const isSelected =
+                  selectedDate &&
+                  day.getDate() === selectedDate.getDate() &&
+                  day.getMonth() === selectedDate.getMonth() &&
+                  day.getFullYear() === selectedDate.getFullYear()
 
                 return (
                   <Grid item xs={12 / 7} key={day.getDate()}>
-                    <Box
-                      sx={{
-                        height: 80,
-                        p: 1,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 2,
-                        position: "relative",
-                        bgcolor: leave
-                          ? leave.status === "Approved"
-                            ? alpha(theme.palette.success.main, 0.1)
-                            : leave.status === "Rejected"
-                              ? alpha(theme.palette.error.main, 0.1)
-                              : alpha(theme.palette.warning.main, 0.1)
-                          : isWeekendDay
-                            ? alpha(theme.palette.divider, 0.1)
-                            : "transparent",
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                          boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                          transform: "translateY(-2px)",
-                        },
-                      }}
+                    <CalendarCell
+                      isSelected={isSelected}
+                      hasLeave={!!leave}
+                      leaveStatus={leave?.status}
+                      isWeekend={isWeekendDay}
+                      onClick={() => setSelectedDate(day)}
                     >
                       <Typography
                         variant="body2"
@@ -1245,8 +1586,8 @@ const EmployeeDashboard = () => {
                           position: "absolute",
                           top: 5,
                           right: 8,
-                          fontWeight: "bold",
-                          color: isWeekendDay ? "error.main" : "text.primary",
+                          fontWeight: isSelected ? 800 : 600,
+                          color: isWeekendDay ? "error.main" : isSelected ? "primary.main" : "text.primary",
                         }}
                       >
                         {day.getDate()}
@@ -1261,7 +1602,7 @@ const EmployeeDashboard = () => {
                               left: 5,
                               right: 5,
                               p: 0.5,
-                              borderRadius: 1,
+                              borderRadius: 8,
                               bgcolor:
                                 leave.status === "Approved"
                                   ? "success.main"
@@ -1274,13 +1615,18 @@ const EmployeeDashboard = () => {
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 0.5,
                             }}
                           >
+                            <LeaveTypeIcon type={leave.type} fontSize="inherit" />
                             {leave.type}
                           </Box>
                         </Tooltip>
                       )}
-                    </Box>
+                    </CalendarCell>
                   </Grid>
                 )
               })}
@@ -1290,15 +1636,15 @@ const EmployeeDashboard = () => {
 
         <Box sx={{ mt: 3, display: "flex", justifyContent: "center", gap: 3 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 16, height: 16, borderRadius: 1, bgcolor: alpha(theme.palette.success.main, 0.7) }} />
+            <Box sx={{ width: 16, height: 16, borderRadius: 8, bgcolor: theme.palette.success.main }} />
             <Typography variant="body2">Approved</Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 16, height: 16, borderRadius: 1, bgcolor: alpha(theme.palette.warning.main, 0.7) }} />
+            <Box sx={{ width: 16, height: 16, borderRadius: 8, bgcolor: theme.palette.warning.main }} />
             <Typography variant="body2">Pending</Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 16, height: 16, borderRadius: 1, bgcolor: alpha(theme.palette.error.main, 0.7) }} />
+            <Box sx={{ width: 16, height: 16, borderRadius: 8, bgcolor: theme.palette.error.main }} />
             <Typography variant="body2">Rejected</Typography>
           </Box>
         </Box>
@@ -1310,9 +1656,12 @@ const EmployeeDashboard = () => {
   const sidebarContent = (
     <Box sx={{ width: DRAWER_WIDTH }}>
       <DrawerHeader>
-        <Typography variant="h6" fontWeight="bold" color="primary">
-          Leave Management
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <CalendarMonth color="primary" sx={{ fontSize: 28 }} />
+          <Typography variant="h6" fontWeight="bold" color="primary.main">
+            Leave Management
+          </Typography>
+        </Box>
       </DrawerHeader>
 
       <Divider sx={{ mb: 2 }} />
@@ -1431,969 +1780,919 @@ const EmployeeDashboard = () => {
   )
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ display: "flex" }}>
-        <CssBaseline />
+    <ThemeProvider theme={theme}>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <Box sx={{ display: "flex" }}>
+          <CssBaseline />
 
-        {/* App Bar */}
-        <StyledAppBar position="fixed">
-          <Toolbar>
-            <IconButton
-              size="large"
-              edge="start"
-              color="inherit"
-              aria-label="menu"
-              sx={{ mr: 2, ...(drawerOpen && !isMobile && { display: "none" }) }}
-              onClick={() => setDrawerOpen(!drawerOpen)}
-            >
-              <MenuIcon />
-            </IconButton>
+          {/* App Bar */}
+          <StyledAppBar position="fixed">
+            <Toolbar>
+              <IconButton
+                size="large"
+                edge="start"
+                color="inherit"
+                aria-label="menu"
+                sx={{ mr: 2, ...(drawerOpen && !isMobile && { display: "none" }) }}
+                onClick={() => setDrawerOpen(!drawerOpen)}
+              >
+                <MenuIcon />
+              </IconButton>
 
-            {isTeamLead ? (
-              <SupervisorAccount sx={{ mr: 2, display: { xs: "none", sm: "block" } }} />
-            ) : (
-              <Person sx={{ mr: 2, display: { xs: "none", sm: "block" } }} />
-            )}
+              {isTeamLead ? (
+                <SupervisorAccount sx={{ mr: 2, display: { xs: "none", sm: "block" }, color: "primary.main" }} />
+              ) : (
+                <Person sx={{ mr: 2, display: { xs: "none", sm: "block" }, color: "primary.main" }} />
+              )}
 
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{ flexGrow: 1, fontSize: { xs: "1rem", sm: "1.25rem" }, fontWeight: 600 }}
-            >
-              {activeView === "dashboard"
-                ? isTeamLead
-                  ? "Team Lead Dashboard"
-                  : "Employee Dashboard"
-                : activeView === "leaveHistory"
-                  ? "Leave History"
-                  : activeView === "calendar"
-                    ? "Leave Calendar"
-                    : activeView === "teamMembers"
-                      ? "Team Members"
-                      : activeView === "teamRequests"
-                        ? "Team Leave Requests"
-                        : activeView === "settings"
-                          ? "Settings"
-                          : activeView === "help"
-                            ? "Help & Support"
-                            : "Dashboard"}
-            </Typography>
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{ flexGrow: 1, fontSize: { xs: "1rem", sm: "1.25rem" }, fontWeight: 600 }}
+              >
+                {activeView === "dashboard"
+                  ? isTeamLead
+                    ? "Team Lead Dashboard"
+                    : "Employee Dashboard"
+                  : activeView === "leaveHistory"
+                    ? "Leave History"
+                    : activeView === "calendar"
+                      ? "Leave Calendar"
+                      : activeView === "teamMembers"
+                        ? "Team Members"
+                        : activeView === "teamRequests"
+                          ? "Team Leave Requests"
+                          : activeView === "settings"
+                            ? "Settings"
+                            : activeView === "help"
+                              ? "Help & Support"
+                              : "Dashboard"}
+              </Typography>
 
-            <StyledBadge badgeContent={pendingLeaves} color="error" sx={{ mr: 2 }}>
-              <AnimatedIconButton color="inherit">
-                <Notifications />
+              <StyledBadge badgeContent={pendingLeaves} color="error" sx={{ mr: 2 }}>
+                <AnimatedIconButton color="primary">
+                  <Notifications />
+                </AnimatedIconButton>
+              </StyledBadge>
+
+              <AnimatedIconButton
+                color="primary"
+                onClick={() => setOpen(true)}
+                sx={{ display: { xs: "flex", sm: "none" } }}
+              >
+                <Add />
               </AnimatedIconButton>
-            </StyledBadge>
+            </Toolbar>
+          </StyledAppBar>
 
-            <AnimatedIconButton
-              color="inherit"
-              onClick={() => setOpen(true)}
-              sx={{ display: { xs: "flex", sm: "none" } }}
-            >
-              <Add />
-            </AnimatedIconButton>
-          </Toolbar>
-        </StyledAppBar>
-
-        {/* Fixed Sidebar for desktop, SwipeableDrawer for mobile */}
-        {isMobile ? (
-          <SwipeableDrawer
-            anchor="left"
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            onOpen={() => setDrawerOpen(true)}
-            sx={{
-              "& .MuiDrawer-paper": {
-                width: { xs: "85%", sm: DRAWER_WIDTH },
-                boxSizing: "border-box",
-                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.paper, 0.9)})`,
-                backdropFilter: "blur(10px)",
-                boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
-              },
-            }}
-          >
-            {sidebarContent}
-          </SwipeableDrawer>
-        ) : (
-          <StyledDrawer variant="permanent" open={drawerOpen}>
-            {sidebarContent}
-          </StyledDrawer>
-        )}
-
-        {/* Main Content */}
-        <Main open={drawerOpen && !isMobile}>
-          <DrawerHeader />
-          <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: 4 }}>
-            {/* Dashboard View */}
-            {activeView === "dashboard" && (
-              <>
-                {/* Team Lead Section - Only visible to team leads */}
-                {isTeamLead && (
-                  <Fade in={true} timeout={800}>
-                    <Box sx={{ mb: 4 }}>
-                      <Typography variant="h5" component="h2" fontWeight="bold" sx={{ mb: 3 }}>
-                        Team Overview
-                      </Typography>
-
-                      <Grid container spacing={3} sx={{ mb: 4 }}>
-                        <Grid item xs={12} sm={6}>
-                          <GlassCard>
-                            <CardContent sx={{ p: 3 }}>
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                                <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-                                  <Group />
-                                </Avatar>
-                                <Typography variant="h6">Team Members</Typography>
-                              </Box>
-                              <Typography variant="h4" fontWeight="bold" color="primary.main">
-                                {teamMembers.length}
-                              </Typography>
-                              <Button
-                                variant="text"
-                                color="primary"
-                                endIcon={<ArrowForward />}
-                                onClick={() => setActiveView("teamMembers")}
-                                sx={{ mt: 2 }}
-                              >
-                                View All
-                              </Button>
-                            </CardContent>
-                          </GlassCard>
-                        </Grid>
-
-                        <Grid item xs={12} sm={6}>
-                          <GlassCard>
-                            <CardContent sx={{ p: 3 }}>
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                                <Avatar sx={{ bgcolor: theme.palette.warning.main }}>
-                                  <HourglassEmpty />
-                                </Avatar>
-                                <Typography variant="h6">Pending Requests</Typography>
-                              </Box>
-                              <Typography variant="h4" fontWeight="bold" color="warning.main">
-                                {leaveRequests.filter((req) => req.status === "Pending").length}
-                              </Typography>
-                              <Button
-                                variant="text"
-                                color="primary"
-                                endIcon={<ArrowForward />}
-                                onClick={() => setActiveView("teamRequests")}
-                                sx={{ mt: 2 }}
-                              >
-                                View All
-                              </Button>
-                            </CardContent>
-                          </GlassCard>
-                        </Grid>
-                      </Grid>
-
-                      <Divider sx={{ my: 4 }} />
-                    </Box>
-                  </Fade>
-                )}
-
-                {/* Personal Dashboard - Visible to all users */}
-                <Fade in={true} timeout={500}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: { xs: "flex-start", sm: "center" },
-                      flexDirection: { xs: "column", sm: "row" },
-                      mb: 4,
-                      gap: 2,
-                    }}
-                  >
-                    <Box>
-                      <Typography
-                        variant="h4"
-                        component="h1"
-                        fontWeight="bold"
-                        sx={{ fontSize: { xs: "1.75rem", sm: "2rem", md: "2.25rem" } }}
-                      >
-                        My Dashboard
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary">
-                        Welcome back! Here's an overview of your leave status
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <GradientButton
-                        startIcon={<Add />}
-                        onClick={() => setOpen(true)}
-                        sx={{ display: { xs: "none", sm: "flex" } }}
-                      >
-                        Apply for Leave
-                      </GradientButton>
-                      <GradientButton
-                        onClick={() => setOpen(true)}
-                        sx={{
-                          display: { xs: "flex", sm: "none" },
-                          minWidth: 0,
-                          width: 40,
-                          height: 40,
-                          p: 0,
-                        }}
-                      >
-                        <Add />
-                      </GradientButton>
-                      <Tooltip title="Refresh data">
-                        <AnimatedIconButton
-                          onClick={fetchLeaveHistory}
-                          color="primary"
-                          sx={{
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                          }}
-                        >
-                          <Refresh />
-                        </AnimatedIconButton>
-                      </Tooltip>
-                    </Box>
-                  </Box>
-                </Fade>
-
-                {/* Stats Cards */}
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                  {/* Leave Balance Card */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Zoom in={true} style={{ transitionDelay: "100ms" }}>
-                      <GlassCard
-                        sx={{
-                          position: "relative",
-                          overflow: "hidden",
-                          "&::after": {
-                            content: '""',
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "5px",
-                            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
-                          },
-                        }}
-                      >
-                        <CardContent sx={{ p: 3 }}>
-                          <Box
-                            sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
-                          >
-                            <Box>
-                              <Typography variant="h4" component="div" fontWeight="bold" color="primary.main">
-                                {leaveBalance.total}
-                              </Typography>
-                              <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
-                                Leave Balance
-                              </Typography>
-                            </Box>
-                            <Avatar
-                              sx={{
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                color: theme.palette.primary.main,
-                                width: 56,
-                                height: 56,
-                              }}
-                            >
-                              <CalendarMonth sx={{ fontSize: 28 }} />
-                            </Avatar>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          <Grid container spacing={1}>
-                            <Grid item xs={6}>
-                              <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Box
-                                  sx={{
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: "50%",
-                                    bgcolor: "primary.main",
-                                    mr: 1,
-                                  }}
-                                />
-                                <Typography variant="body2" color="text.secondary">
-                                  Casual:{" "}
-                                  <Box component="span" fontWeight="medium">
-                                    {leaveBalance.casual}
-                                  </Box>
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Box
-                                  sx={{
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: "50%",
-                                    bgcolor: "error.main",
-                                    mr: 1,
-                                  }}
-                                />
-                                <Typography variant="body2" color="text.secondary">
-                                  Sick:{" "}
-                                  <Box component="span" fontWeight="medium">
-                                    {leaveBalance.sick}
-                                  </Box>
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Box
-                                  sx={{
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: "50%",
-                                    bgcolor: "info.main",
-                                    mr: 1,
-                                  }}
-                                />
-                                <Typography variant="body2" color="text.secondary">
-                                  Medical:{" "}
-                                  <Box component="span" fontWeight="medium">
-                                    {leaveBalance.medical}
-                                  </Box>
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Box
-                                  sx={{
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: "50%",
-                                    bgcolor: "secondary.main",
-                                    mr: 1,
-                                  }}
-                                />
-                                <Typography variant="body2" color="text.secondary">
-                                  WFH:{" "}
-                                  <Box component="span" fontWeight="medium">
-                                    {leaveBalance.Workfromhome}
-                                  </Box>
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          </Grid>
-                        </CardContent>
-                      </GlassCard>
-                    </Zoom>
-                  </Grid>
-
-                  {/* Pending Requests Card */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Zoom in={true} style={{ transitionDelay: "200ms" }}>
-                      <GlassCard
-                        sx={{
-                          position: "relative",
-                          overflow: "hidden",
-                          "&::after": {
-                            content: '""',
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "5px",
-                            background: `linear-gradient(90deg, ${theme.palette.warning.main}, ${theme.palette.warning.light})`,
-                          },
-                        }}
-                      >
-                        <CardContent sx={{ p: 3 }}>
-                          <Box
-                            sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
-                          >
-                            <Box>
-                              <Typography variant="h4" component="div" fontWeight="bold" color="warning.main">
-                                {pendingLeaves}
-                              </Typography>
-                              <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
-                                Pending Requests
-                              </Typography>
-                            </Box>
-                            <Avatar
-                              sx={{
-                                bgcolor: alpha(theme.palette.warning.main, 0.1),
-                                color: theme.palette.warning.main,
-                                width: 56,
-                                height: 56,
-                              }}
-                            >
-                              <HourglassEmpty sx={{ fontSize: 28 }} />
-                            </Avatar>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                            <Box sx={{ flexGrow: 1, mr: 2 }}>
-                              <LinearProgress
-                                variant="determinate"
-                                value={
-                                  Math.min(
-                                    (pendingLeaves / (pendingLeaves + approvedLeaves + rejectedLeaves)) * 100,
-                                    100,
-                                  ) || 0
-                                }
-                                color="warning"
-                                sx={{ height: 8, borderRadius: 4 }}
-                              />
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" fontWeight="medium">
-                              Awaiting approval
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </GlassCard>
-                    </Zoom>
-                  </Grid>
-
-                  {/* Approved Leaves Card */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Zoom in={true} style={{ transitionDelay: "300ms" }}>
-                      <GlassCard
-                        sx={{
-                          position: "relative",
-                          overflow: "hidden",
-                          "&::after": {
-                            content: '""',
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "5px",
-                            background: `linear-gradient(90deg, ${theme.palette.success.main}, ${theme.palette.success.light})`,
-                          },
-                        }}
-                      >
-                        <CardContent sx={{ p: 3 }}>
-                          <Box
-                            sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
-                          >
-                            <Box>
-                              <Typography variant="h4" component="div" fontWeight="bold" color="success.main">
-                                {approvedLeaves}
-                              </Typography>
-                              <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
-                                Approved Leaves
-                              </Typography>
-                            </Box>
-                            <Avatar
-                              sx={{
-                                bgcolor: alpha(theme.palette.success.main, 0.1),
-                                color: theme.palette.success.main,
-                                width: 56,
-                                height: 56,
-                              }}
-                            >
-                              <CheckCircleOutline sx={{ fontSize: 28 }} />
-                            </Avatar>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 1 }}>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <DateRange sx={{ color: "success.main", fontSize: 20, mr: 1 }} />
-                              <Typography variant="body2" color="text.secondary">
-                                Total days:
-                              </Typography>
-                            </Box>
-                            <Chip
-                              label={totalDaysTaken}
-                              size="small"
-                              color="success"
-                              variant="filled"
-                              sx={{ fontWeight: "medium" }}
-                            />
-                          </Box>
-                        </CardContent>
-                      </GlassCard>
-                    </Zoom>
-                  </Grid>
-
-                  {/* Rejected Requests Card */}
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Zoom in={true} style={{ transitionDelay: "400ms" }}>
-                      <GlassCard
-                        sx={{
-                          position: "relative",
-                          overflow: "hidden",
-                          "&::after": {
-                            content: '""',
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "5px",
-                            background: `linear-gradient(90deg, ${theme.palette.error.main}, ${theme.palette.error.light})`,
-                          },
-                        }}
-                      >
-                        <CardContent sx={{ p: 3 }}>
-                          <Box
-                            sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
-                          >
-                            <Box>
-                              <Typography variant="h4" component="div" fontWeight="bold" color="error.main">
-                                {rejectedLeaves}
-                              </Typography>
-                              <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
-                                Rejected Requests
-                              </Typography>
-                            </Box>
-                            <Avatar
-                              sx={{
-                                bgcolor: alpha(theme.palette.error.main, 0.1),
-                                color: theme.palette.error.main,
-                                width: 56,
-                                height: 56,
-                              }}
-                            >
-                              <CancelOutlined sx={{ fontSize: 28 }} />
-                            </Avatar>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                            <Box sx={{ flexGrow: 1, mr: 2 }}>
-                              <LinearProgress
-                                variant="determinate"
-                                value={
-                                  Math.min(
-                                    (rejectedLeaves / (pendingLeaves + approvedLeaves + rejectedLeaves)) * 100,
-                                    100,
-                                  ) || 0
-                                }
-                                color="error"
-                                sx={{ height: 8, borderRadius: 4 }}
-                              />
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" fontWeight="medium">
-                              Review and reapply
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </GlassCard>
-                    </Zoom>
-                  </Grid>
-                </Grid>
-
-                {/* Tabs */}
-                <Fade in={true} timeout={800}>
-                  <GlassCard sx={{ mb: 4, overflow: "hidden" }}>
-                    <Tabs
-                      value={tabValue}
-                      onChange={handleTabChange}
-                      indicatorColor="primary"
-                      textColor="primary"
-                      variant={isMobile ? "fullWidth" : "standard"}
-                      sx={{
-                        borderBottom: 1,
-                        borderColor: "divider",
-                        "& .MuiTab-root": {
-                          fontWeight: 600,
-                          py: 2,
-                          transition: "all 0.2s ease",
-                          "&:hover": {
-                            bgcolor: alpha(theme.palette.primary.main, 0.05),
-                          },
-                        },
-                      }}
-                    >
-                      <Tab
-                        icon={<FilterList />}
-                        label={isMobile ? "REQUESTS" : "LEAVE REQUESTS"}
-                        iconPosition="start"
-                      />
-                      <Tab icon={<EventNote />} label={isMobile ? "CALENDAR" : "LEAVE CALENDAR"} iconPosition="start" />
-                    </Tabs>
-
-                    {/* Tab Content */}
-                    <Box sx={{ p: { xs: 2, sm: 3 } }}>
-                      {tabValue === 0 && (
-                        <>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "flex-end",
-                              mb: 3,
-                              flexDirection: { xs: "column", sm: "row" },
-                              gap: 1,
-                            }}
-                          >
-                            <FormControl
-                              variant="outlined"
-                              size="small"
-                              sx={{
-                                minWidth: { xs: "100%", sm: 200 },
-                                "& .MuiOutlinedInput-root": {
-                                  borderRadius: 2,
-                                },
-                              }}
-                            >
-                              <InputLabel id="filter-label">Filter by Status</InputLabel>
-                              <Select
-                                labelId="filter-label"
-                                value={filter}
-                                onChange={(e) => setFilter(e.target.value)}
-                                label="Filter by Status"
-                                startAdornment={<FilterList sx={{ mr: 1, color: "primary.main" }} />}
-                              >
-                                <MenuItem value="All">All Requests</MenuItem>
-                                <MenuItem value="Pending">Pending</MenuItem>
-                                <MenuItem value="Approved">Approved</MenuItem>
-                                <MenuItem value="Rejected">Rejected</MenuItem>
-                              </Select>
-                            </FormControl>
-                          </Box>
-
-                          {renderLeaveHistoryTable()}
-                        </>
-                      )}
-
-                      {tabValue === 1 && renderCalendarView()}
-                    </Box>
-                  </GlassCard>
-                </Fade>
-              </>
-            )}
-
-            {/* Leave History View */}
-            {activeView === "leaveHistory" && (
-              <Fade in={true} timeout={500}>
-                <Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
-                    <Typography variant="h4" component="h1" fontWeight="bold">
-                      Leave History
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <FormControl
-                        variant="outlined"
-                        size="small"
-                        sx={{
-                          minWidth: { xs: "100%", sm: 200 },
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                          },
-                        }}
-                      >
-                        <InputLabel id="filter-label">Filter by Status</InputLabel>
-                        <Select
-                          labelId="filter-label"
-                          value={filter}
-                          onChange={(e) => setFilter(e.target.value)}
-                          label="Filter by Status"
-                          startAdornment={<FilterList sx={{ mr: 1, color: "primary.main" }} />}
-                        >
-                          <MenuItem value="All">All Requests</MenuItem>
-                          <MenuItem value="Pending">Pending</MenuItem>
-                          <MenuItem value="Approved">Approved</MenuItem>
-                          <MenuItem value="Rejected">Rejected</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Tooltip title="Refresh data">
-                        <AnimatedIconButton
-                          onClick={fetchLeaveHistory}
-                          color="primary"
-                          sx={{
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                          }}
-                        >
-                          <Refresh />
-                        </AnimatedIconButton>
-                      </Tooltip>
-                    </Box>
-                  </Box>
-
-                  <GlassCard>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderLeaveHistoryTable()}</CardContent>
-                  </GlassCard>
-                </Box>
-              </Fade>
-            )}
-
-            {/* Calendar View */}
-            {activeView === "calendar" && (
-              <Fade in={true} timeout={500}>
-                <Box>
-                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
-                    Leave Calendar
-                  </Typography>
-
-                  <GlassCard>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderCalendarView()}</CardContent>
-                  </GlassCard>
-                </Box>
-              </Fade>
-            )}
-
-            {/* Team Members View */}
-            {activeView === "teamMembers" && (
-              <Fade in={true} timeout={500}>
-                <Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
-                    <Typography variant="h4" component="h1" fontWeight="bold">
-                      Team Members
-                    </Typography>
-                    <Tooltip title="Refresh team data">
-                      <AnimatedIconButton onClick={fetchTeamData} color="primary">
-                        <Refresh />
-                      </AnimatedIconButton>
-                    </Tooltip>
-                  </Box>
-
-                  <GlassCard>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderTeamMembersTable()}</CardContent>
-                  </GlassCard>
-                </Box>
-              </Fade>
-            )}
-
-            {/* Team Requests View */}
-            {activeView === "teamRequests" && (
-              <Fade in={true} timeout={500}>
-                <Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
-                    <Typography variant="h4" component="h1" fontWeight="bold">
-                      Team Leave Requests
-                    </Typography>
-                    <Tooltip title="Refresh team data">
-                      <AnimatedIconButton onClick={fetchTeamData} color="primary">
-                        <Refresh />
-                      </AnimatedIconButton>
-                    </Tooltip>
-                  </Box>
-
-                  <GlassCard>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderTeamLeaveRequestsTable()}</CardContent>
-                  </GlassCard>
-                </Box>
-              </Fade>
-            )}
-
-            {/* Settings View */}
-            {activeView === "settings" && (
-              <Fade in={true} timeout={500}>
-                <Box>
-                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
-                    Settings
-                  </Typography>
-
-                  <GlassCard>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                      <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
-                        Settings panel will be available soon.
-                      </Typography>
-                    </CardContent>
-                  </GlassCard>
-                </Box>
-              </Fade>
-            )}
-
-            {/* Help & Support View */}
-            {activeView === "help" && (
-              <Fade in={true} timeout={500}>
-                <Box>
-                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
-                    Help & Support
-                  </Typography>
-
-                  <GlassCard>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                      <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
-                        Help and support resources will be available soon.
-                      </Typography>
-                    </CardContent>
-                  </GlassCard>
-                </Box>
-              </Fade>
-            )}
-
-            {/* Apply Leave Dialog */}
-            <Dialog
-              open={open}
-              onClose={() => setOpen(false)}
-              maxWidth="sm"
-              fullWidth
-              fullScreen={isMobile}
-              PaperProps={{
-                sx: {
-                  borderRadius: isMobile ? 0 : 3,
-                  overflow: "hidden",
-                  backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.paper, 0.9)})`,
+          {/* Fixed Sidebar for desktop, SwipeableDrawer for mobile */}
+          {isMobile ? (
+            <SwipeableDrawer
+              anchor="left"
+              open={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+              onOpen={() => setDrawerOpen(true)}
+              sx={{
+                "& .MuiDrawer-paper": {
+                  width: { xs: "85%", sm: DRAWER_WIDTH },
+                  boxSizing: "border-box",
+                  backgroundImage: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)}, ${alpha(theme.palette.background.paper, 0.95)})`,
                   backdropFilter: "blur(10px)",
-                  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+                  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
                 },
               }}
             >
-              <DialogTitle
-                sx={{
-                  background: `linear-gradient(90deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                  color: "primary.contrastText",
-                  py: 2,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <Add /> Apply for Leave
-              </DialogTitle>
-              <DialogContent sx={{ pt: 3, mt: 2 }}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <FormControl
-                      fullWidth
-                      error={formErrors.type}
-                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+              {sidebarContent}
+            </SwipeableDrawer>
+          ) : (
+            <StyledDrawer variant="permanent" open={drawerOpen}>
+              {sidebarContent}
+            </StyledDrawer>
+          )}
+
+          {/* Main Content */}
+          <Main open={drawerOpen && !isMobile}>
+            <DrawerHeader />
+            <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: 4 }}>
+              {/* Dashboard View */}
+              {activeView === "dashboard" && (
+                <>
+                  {/* Team Lead Section - Only visible to team leads */}
+                  {isTeamLead && (
+                    <Fade in={true} timeout={800}>
+                      <Box sx={{ mb: 4 }}>
+                        <Typography variant="h5" component="h2" fontWeight="bold" sx={{ mb: 3 }}>
+                          Team Overview
+                        </Typography>
+
+                        <Grid container spacing={3} sx={{ mb: 4 }}>
+                          <Grid item xs={12} sm={6}>
+                            <GlassCard>
+                              <CardContent sx={{ p: 3 }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                                  <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+                                    <Group />
+                                  </Avatar>
+                                  <Typography variant="h6">Team Members</Typography>
+                                </Box>
+                                <Typography variant="h4" fontWeight="bold" color="primary.main">
+                                  {teamMembers.length}
+                                </Typography>
+                                <Button
+                                  variant="text"
+                                  color="primary"
+                                  endIcon={<ArrowForward />}
+                                  onClick={() => setActiveView("teamMembers")}
+                                  sx={{ mt: 2 }}
+                                >
+                                  View All
+                                </Button>
+                              </CardContent>
+                            </GlassCard>
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <GlassCard>
+                              <CardContent sx={{ p: 3 }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                                  <Avatar sx={{ bgcolor: theme.palette.warning.main }}>
+                                    <HourglassEmpty />
+                                  </Avatar>
+                                  <Typography variant="h6">Pending Requests</Typography>
+                                </Box>
+                                <Typography variant="h4" fontWeight="bold" color="warning.main">
+                                  {leaveRequests.filter((req) => req.status === "Pending").length}
+                                </Typography>
+                                <Button
+                                  variant="text"
+                                  color="primary"
+                                  endIcon={<ArrowForward />}
+                                  onClick={() => setActiveView("teamRequests")}
+                                  sx={{ mt: 2 }}
+                                >
+                                  View All
+                                </Button>
+                              </CardContent>
+                            </GlassCard>
+                          </Grid>
+                        </Grid>
+
+                        <Divider sx={{ my: 4 }} />
+                      </Box>
+                    </Fade>
+                  )}
+
+                  {/* Personal Dashboard - Visible to all users */}
+                  <Fade in={true} timeout={500}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: { xs: "flex-start", sm: "center" },
+                        flexDirection: { xs: "column", sm: "row" },
+                        mb: 4,
+                        gap: 2,
+                      }}
                     >
-                      <InputLabel id="leave-type-label">Leave Type</InputLabel>
-                      <Select
-                        labelId="leave-type-label"
-                        value={leaveData.type}
-                        onChange={(e) => setLeaveData({ ...leaveData, type: e.target.value })}
-                        label="Leave Type"
-                      >
-                        <MenuItem value="casualleave">Casual Leave</MenuItem>
-                        <MenuItem value="sickleave">Sick Leave</MenuItem>
-                        <MenuItem value="medicalleave">Medical Leave</MenuItem>
-                        <MenuItem value="workfromhome">Work from Home</MenuItem>
-                      </Select>
-                      {formErrors.type && <FormHelperText>Please select a leave type</FormHelperText>}
-                    </FormControl>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <DatePicker
-                      label="Start Date"
-                      value={leaveData.startDate}
-                      onChange={(date) => setLeaveData({ ...leaveData, startDate: date })}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          fullWidth
-                          error={formErrors.startDate}
-                          helperText={formErrors.startDate ? "Start date is required" : ""}
-                          sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                        />
-                      )}
-                      disablePast
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <DatePicker
-                      label="End Date"
-                      value={leaveData.endDate}
-                      onChange={(date) => setLeaveData({ ...leaveData, endDate: date })}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          fullWidth
-                          error={formErrors.endDate}
-                          helperText={formErrors.endDate ? "End date is required" : ""}
-                          sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                        />
-                      )}
-                      disablePast
-                      minDate={leaveData.startDate || new Date()}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Reason for Leave"
-                      multiline
-                      rows={3}
-                      fullWidth
-                      value={leaveData.reason}
-                      onChange={(e) => setLeaveData({ ...leaveData, reason: e.target.value })}
-                      error={formErrors.reason}
-                      helperText={formErrors.reason ? "Please provide a valid reason (min 3 characters)" : ""}
-                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                    />
-                  </Grid>
-
-                  {leaveData.startDate && leaveData.endDate && (
-                    <Grid item xs={12}>
-                      <Box
-                        sx={{
-                          p: 2,
-                          borderRadius: 2,
-                          bgcolor: alpha(theme.palette.primary.main, 0.1),
-                          border: `1px dashed ${theme.palette.primary.main}`,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1,
-                        }}
-                      >
-                        <DateRange color="primary" />
-                        <Typography variant="body1" color="primary.main" fontWeight="medium">
-                          Duration: <strong>{differenceInDays(leaveData.endDate, leaveData.startDate) + 1} days</strong>
+                      <Box>
+                        <Typography
+                          variant="h4"
+                          component="h1"
+                          fontWeight="bold"
+                          sx={{ fontSize: { xs: "1.75rem", sm: "2rem", md: "2.25rem" } }}
+                        >
+                          My Dashboard
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          Welcome back! Here's an overview of your leave status
                         </Typography>
                       </Box>
-                    </Grid>
-                  )}
-                </Grid>
-              </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 3 }}>
-                <Button
-                  onClick={() => setOpen(false)}
-                  variant="outlined"
-                  color="inherit"
-                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-                >
-                  Cancel
-                </Button>
-                <GradientButton
-                  onClick={handleApplyLeave}
-                  disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Add />}
-                >
-                  {loading ? "Submitting..." : "Submit Request"}
-                </GradientButton>
-              </DialogActions>
-            </Dialog>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <GradientButton
+                          startIcon={<Add />}
+                          onClick={() => setOpen(true)}
+                          sx={{ display: { xs: "none", sm: "flex" } }}
+                        >
+                          Apply for Leave
+                        </GradientButton>
+                        <GradientButton
+                          onClick={() => setOpen(true)}
+                          sx={{
+                            display: { xs: "flex", sm: "none" },
+                            minWidth: 0,
+                            width: 40,
+                            height: 40,
+                            p: 0,
+                          }}
+                        >
+                          <Add />
+                        </GradientButton>
+                        <Tooltip title="Refresh data">
+                          <AnimatedIconButton
+                            onClick={fetchLeaveHistory}
+                            color="primary"
+                            sx={{
+                              bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            }}
+                          >
+                            <Refresh />
+                          </AnimatedIconButton>
+                        </Tooltip>
+                      </Box>
+                    </Box>
+                  </Fade>
 
-            {/* Snackbar for notifications */}
-            <Snackbar
-              open={snackbar.open}
-              autoHideDuration={6000}
-              onClose={handleCloseSnackbar}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              TransitionComponent={Grow}
-            >
-              <Alert
-                onClose={handleCloseSnackbar}
-                severity={snackbar.severity}
-                variant="filled"
-                sx={{
-                  width: "100%",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                  borderRadius: 2,
-                  fontWeight: 500,
+                  {/* Stats Cards */}
+                  <Grid container spacing={3} sx={{ mb: 4 }}>
+                    {/* Leave Balance Card */}
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Zoom in={true} style={{ transitionDelay: "100ms" }}>
+                        <StatCard accentColor={theme.palette.primary.main}>
+                          <CardContent sx={{ p: 3 }}>
+                            <Box
+                              sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
+                            >
+                              <Box>
+                                <Typography variant="h4" component="div" fontWeight="bold" color="primary.main">
+                                  {leaveBalance.total}
+                                </Typography>
+                                <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
+                                  Leave Balance
+                                </Typography>
+                              </Box>
+                              <Avatar
+                                sx={{
+                                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                  color: theme.palette.primary.main,
+                                  width: 56,
+                                  height: 56,
+                                }}
+                              >
+                                <CalendarMonth sx={{ fontSize: 28 }} />
+                              </Avatar>
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            <Grid container spacing={1}>
+                              <Grid item xs={6}>
+                                <Box sx={{ display: "flex", alignItems: "center" }}>
+                                  <Box
+                                    sx={{
+                                      width: 10,
+                                      height: 10,
+                                      borderRadius: "50%",
+                                      bgcolor: "primary.main",
+                                      mr: 1,
+                                    }}
+                                  />
+                                  <Typography variant="body2" color="text.secondary">
+                                    Casual:{" "}
+                                    <Box component="span" fontWeight="medium">
+                                      {leaveBalance.casual}
+                                    </Box>
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Box sx={{ display: "flex", alignItems: "center" }}>
+                                  <Box
+                                    sx={{
+                                      width: 10,
+                                      height: 10,
+                                      borderRadius: "50%",
+                                      bgcolor: "error.main",
+                                      mr: 1,
+                                    }}
+                                  />
+                                  <Typography variant="body2" color="text.secondary">
+                                    Sick:{" "}
+                                    <Box component="span" fontWeight="medium">
+                                      {leaveBalance.sick}
+                                    </Box>
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Box sx={{ display: "flex", alignItems: "center" }}>
+                                  <Box
+                                    sx={{
+                                      width: 10,
+                                      height: 10,
+                                      borderRadius: "50%",
+                                      bgcolor: "info.main",
+                                      mr: 1,
+                                    }}
+                                  />
+                                  <Typography variant="body2" color="text.secondary">
+                                    Medical:{" "}
+                                    <Box component="span" fontWeight="medium">
+                                      {leaveBalance.medical}
+                                    </Box>
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Box sx={{ display: "flex", alignItems: "center" }}>
+                                  <Box
+                                    sx={{
+                                      width: 10,
+                                      height: 10,
+                                      borderRadius: "50%",
+                                      bgcolor: "secondary.main",
+                                      mr: 1,
+                                    }}
+                                  />
+                                  <Typography variant="body2" color="text.secondary">
+                                    WFH:{" "}
+                                    <Box component="span" fontWeight="medium">
+                                      {leaveBalance.Workfromhome}
+                                    </Box>
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            </Grid>
+                          </CardContent>
+                        </StatCard>
+                      </Zoom>
+                    </Grid>
+
+                    {/* Pending Requests Card */}
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Zoom in={true} style={{ transitionDelay: "200ms" }}>
+                        <StatCard accentColor={theme.palette.warning.main}>
+                          <CardContent sx={{ p: 3 }}>
+                            <Box
+                              sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
+                            >
+                              <Box>
+                                <Typography variant="h4" component="div" fontWeight="bold" color="warning.main">
+                                  {pendingLeaves}
+                                </Typography>
+                                <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
+                                  Pending Requests
+                                </Typography>
+                              </Box>
+                              <Avatar
+                                sx={{
+                                  bgcolor: alpha(theme.palette.warning.main, 0.1),
+                                  color: theme.palette.warning.main,
+                                  width: 56,
+                                  height: 56,
+                                }}
+                              >
+                                <HourglassEmpty sx={{ fontSize: 28 }} />
+                              </Avatar>
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                              <Box sx={{ flexGrow: 1, mr: 2 }}>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={
+                                    Math.min(
+                                      (pendingLeaves / (pendingLeaves + approvedLeaves + rejectedLeaves)) * 100,
+                                      100,
+                                    ) || 0
+                                  }
+                                  color="warning"
+                                  sx={{ height: 8, borderRadius: 4 }}
+                                />
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                                Awaiting approval
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </StatCard>
+                      </Zoom>
+                    </Grid>
+
+                    {/* Approved Leaves Card */}
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Zoom in={true} style={{ transitionDelay: "300ms" }}>
+                        <StatCard accentColor={theme.palette.success.main}>
+                          <CardContent sx={{ p: 3 }}>
+                            <Box
+                              sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
+                            >
+                              <Box>
+                                <Typography variant="h4" component="div" fontWeight="bold" color="success.main">
+                                  {approvedLeaves}
+                                </Typography>
+                                <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
+                                  Approved Leaves
+                                </Typography>
+                              </Box>
+                              <Avatar
+                                sx={{
+                                  bgcolor: alpha(theme.palette.success.main, 0.1),
+                                  color: theme.palette.success.main,
+                                  width: 56,
+                                  height: 56,
+                                }}
+                              >
+                                <CheckCircleOutline sx={{ fontSize: 28 }} />
+                              </Avatar>
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 1 }}>
+                              <Box sx={{ display: "flex", alignItems: "center" }}>
+                                <DateRange sx={{ color: "success.main", fontSize: 20, mr: 1 }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  Total days:
+                                </Typography>
+                              </Box>
+                              <Chip
+                                label={totalDaysTaken}
+                                size="small"
+                                color="success"
+                                variant="filled"
+                                sx={{ fontWeight: "medium" }}
+                              />
+                            </Box>
+                          </CardContent>
+                        </StatCard>
+                      </Zoom>
+                    </Grid>
+
+                    {/* Rejected Requests Card */}
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Zoom in={true} style={{ transitionDelay: "400ms" }}>
+                        <StatCard accentColor={theme.palette.error.main}>
+                          <CardContent sx={{ p: 3 }}>
+                            <Box
+                              sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
+                            >
+                              <Box>
+                                <Typography variant="h4" component="div" fontWeight="bold" color="error.main">
+                                  {rejectedLeaves}
+                                </Typography>
+                                <Typography variant="subtitle1" fontWeight="medium" sx={{ mt: 0.5 }}>
+                                  Rejected Requests
+                                </Typography>
+                              </Box>
+                              <Avatar
+                                sx={{
+                                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                                  color: theme.palette.error.main,
+                                  width: 56,
+                                  height: 56,
+                                }}
+                              >
+                                <CancelOutlined sx={{ fontSize: 28 }} />
+                              </Avatar>
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                              <Box sx={{ flexGrow: 1, mr: 2 }}>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={
+                                    Math.min(
+                                      (rejectedLeaves / (pendingLeaves + approvedLeaves + rejectedLeaves)) * 100,
+                                      100,
+                                    ) || 0
+                                  }
+                                  color="error"
+                                  sx={{ height: 8, borderRadius: 4 }}
+                                />
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                                Review and reapply
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </StatCard>
+                      </Zoom>
+                    </Grid>
+                  </Grid>
+
+                  {/* Tabs */}
+                  <Fade in={true} timeout={800}>
+                    <GlassCard sx={{ mb: 4, overflow: "hidden" }}>
+                      <Tabs
+                        value={tabValue}
+                        onChange={handleTabChange}
+                        indicatorColor="primary"
+                        textColor="primary"
+                        variant={isMobile ? "fullWidth" : "standard"}
+                        sx={{
+                          borderBottom: 1,
+                          borderColor: "divider",
+                          "& .MuiTab-root": {
+                            fontWeight: 600,
+                            py: 2,
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                              bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            },
+                          },
+                        }}
+                      >
+                        <Tab
+                          icon={<FilterList />}
+                          label={isMobile ? "REQUESTS" : "LEAVE REQUESTS"}
+                          iconPosition="start"
+                        />
+                        <Tab
+                          icon={<EventNote />}
+                          label={isMobile ? "CALENDAR" : "LEAVE CALENDAR"}
+                          iconPosition="start"
+                        />
+                      </Tabs>
+
+                      {/* Tab Content */}
+                      <Box sx={{ p: { xs: 2, sm: 3 } }}>
+                        {tabValue === 0 && (
+                          <>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                mb: 3,
+                                flexDirection: { xs: "column", sm: "row" },
+                                gap: 1,
+                              }}
+                            >
+                              <FormControl
+                                variant="outlined"
+                                size="small"
+                                sx={{
+                                  minWidth: { xs: "100%", sm: 200 },
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 10,
+                                  },
+                                }}
+                              >
+                                <InputLabel id="filter-label">Filter by Status</InputLabel>
+                                <Select
+                                  labelId="filter-label"
+                                  value={filter}
+                                  onChange={(e) => setFilter(e.target.value)}
+                                  label="Filter by Status"
+                                  startAdornment={<FilterList sx={{ mr: 1, color: "primary.main" }} />}
+                                >
+                                  <MenuItem value="All">All Requests</MenuItem>
+                                  <MenuItem value="Pending">Pending</MenuItem>
+                                  <MenuItem value="Approved">Approved</MenuItem>
+                                  <MenuItem value="Rejected">Rejected</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </Box>
+
+                            {renderLeaveHistoryTable()}
+                          </>
+                        )}
+
+                        {tabValue === 1 && renderCalendarView()}
+                      </Box>
+                    </GlassCard>
+                  </Fade>
+                </>
+              )}
+
+              {/* Leave History View */}
+              {activeView === "leaveHistory" && (
+                <Fade in={true} timeout={500}>
+                  <Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+                      <Typography variant="h4" component="h1" fontWeight="bold">
+                        Leave History
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <FormControl
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            minWidth: { xs: "100%", sm: 200 },
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 10,
+                            },
+                          }}
+                        >
+                          <InputLabel id="filter-label">Filter by Status</InputLabel>
+                          <Select
+                            labelId="filter-label"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            label="Filter by Status"
+                            startAdornment={<FilterList sx={{ mr: 1, color: "primary.main" }} />}
+                          >
+                            <MenuItem value="All">All Requests</MenuItem>
+                            <MenuItem value="Pending">Pending</MenuItem>
+                            <MenuItem value="Approved">Approved</MenuItem>
+                            <MenuItem value="Rejected">Rejected</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Tooltip title="Refresh data">
+                          <AnimatedIconButton
+                            onClick={fetchLeaveHistory}
+                            color="primary"
+                            sx={{
+                              bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            }}
+                          >
+                            <Refresh />
+                          </AnimatedIconButton>
+                        </Tooltip>
+                      </Box>
+                    </Box>
+
+                    <GlassCard>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderLeaveHistoryTable()}</CardContent>
+                    </GlassCard>
+                  </Box>
+                </Fade>
+              )}
+
+              {/* Calendar View */}
+              {activeView === "calendar" && (
+                <Fade in={true} timeout={500}>
+                  <Box>
+                    <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                      Leave Calendar
+                    </Typography>
+
+                    <GlassCard>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderCalendarView()}</CardContent>
+                    </GlassCard>
+                  </Box>
+                </Fade>
+              )}
+
+              {/* Team Members View */}
+              {activeView === "teamMembers" && (
+                <Fade in={true} timeout={500}>
+                  <Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+                      <Typography variant="h4" component="h1" fontWeight="bold">
+                        Team Members
+                      </Typography>
+                      <Tooltip title="Refresh team data">
+                        <AnimatedIconButton onClick={fetchTeamData} color="primary">
+                          <Refresh />
+                        </AnimatedIconButton>
+                      </Tooltip>
+                    </Box>
+
+                    <GlassCard>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderTeamMembersTable()}</CardContent>
+                    </GlassCard>
+                  </Box>
+                </Fade>
+              )}
+
+              {/* Team Requests View */}
+              {activeView === "teamRequests" && (
+                <Fade in={true} timeout={500}>
+                  <Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+                      <Typography variant="h4" component="h1" fontWeight="bold">
+                        Team Leave Requests
+                      </Typography>
+                      <Tooltip title="Refresh team data">
+                        <AnimatedIconButton onClick={fetchTeamData} color="primary">
+                          <Refresh />
+                        </AnimatedIconButton>
+                      </Tooltip>
+                    </Box>
+
+                    <GlassCard>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>{renderTeamLeaveRequestsTable()}</CardContent>
+                    </GlassCard>
+                  </Box>
+                </Fade>
+              )}
+
+              {/* Settings View */}
+              {activeView === "settings" && (
+                <Fade in={true} timeout={500}>
+                  <Box>
+                    <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                      Settings
+                    </Typography>
+
+                    <GlassCard>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                        <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+                          Settings panel will be available soon.
+                        </Typography>
+                      </CardContent>
+                    </GlassCard>
+                  </Box>
+                </Fade>
+              )}
+
+              {/* Help & Support View */}
+              {activeView === "help" && (
+                <Fade in={true} timeout={500}>
+                  <Box>
+                    <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                      Help & Support
+                    </Typography>
+
+                    <GlassCard>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                        <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+                          Help and support resources will be available soon.
+                        </Typography>
+                      </CardContent>
+                    </GlassCard>
+                  </Box>
+                </Fade>
+              )}
+
+              {/* Apply Leave Dialog */}
+              <Dialog
+                open={open}
+                onClose={() => setOpen(false)}
+                maxWidth="sm"
+                fullWidth
+                fullScreen={isMobile}
+                PaperProps={{
+                  sx: {
+                    borderRadius: isMobile ? 0:5,
+                    overflow: "hidden",
+                    backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.paper, 0.9)})`,
+                    backdropFilter: "blur(10px)",
+                    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+                  },
                 }}
-                icon={
-                  snackbar.severity === "success" ? (
-                    <CheckCircleOutline />
-                  ) : snackbar.severity === "error" ? (
-                    <CancelOutlined />
-                  ) : snackbar.severity === "warning" ? (
-                    <HourglassEmpty />
-                  ) : (
-                    <Info />
-                  )
-                }
               >
-                {snackbar.message}
-              </Alert>
-            </Snackbar>
-          </Container>
-        </Main>
-      </Box>
-    </LocalizationProvider>
+                <DialogTitle
+                  sx={{
+                    py: 2,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    color: "primary.main",
+                  }}
+                >
+                  <Add /> Apply for Leave
+                </DialogTitle>
+                <DialogContent sx={{ pt: 3, mt: 2 }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                      <FormControl
+                        fullWidth
+                        error={formErrors.type}
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: 10 } }}
+                      >
+                        <InputLabel id="leave-type-label">Leave Type</InputLabel>
+                        <Select
+                          labelId="leave-type-label"
+                          value={leaveData.type}
+                          onChange={(e) => setLeaveData({ ...leaveData, type: e.target.value })}
+                          label="Leave Type"
+                        >
+                          <MenuItem value="casualleave">Casual Leave</MenuItem>
+                          <MenuItem value="sickleave">Sick Leave</MenuItem>
+                          <MenuItem value="medicalleave">Medical Leave</MenuItem>
+                          <MenuItem value="workfromhome">Work from Home</MenuItem>
+                        </Select>
+                        {formErrors.type && <FormHelperText>Please select a leave type</FormHelperText>}
+                      </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <DatePicker
+                        label="Start Date"
+                        value={leaveData.startDate}
+                        onChange={(date) => setLeaveData({ ...leaveData, startDate: date })}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            fullWidth
+                            error={formErrors.startDate}
+                            helperText={formErrors.startDate ? "Start date is required" : ""}
+                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 10 } }}
+                          />
+                        )}
+                        disablePast
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <DatePicker
+                        label="End Date"
+                        value={leaveData.endDate}
+                        onChange={(date) => setLeaveData({ ...leaveData, endDate: date })}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            fullWidth
+                            error={formErrors.endDate}
+                            helperText={formErrors.endDate ? "End date is required" : ""}
+                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 10 } }}
+                          />
+                        )}
+                        disablePast
+                        minDate={leaveData.startDate || new Date()}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Reason for Leave"
+                        multiline
+                        rows={3}
+                        fullWidth
+                        value={leaveData.reason}
+                        onChange={(e) => setLeaveData({ ...leaveData, reason: e.target.value })}
+                        error={formErrors.reason}
+                        helperText={formErrors.reason ? "Please provide a valid reason (min 3 characters)" : ""}
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: 10 } }}
+                      />
+                    </Grid>
+
+                    {leaveData.startDate && leaveData.endDate && (
+                      <Grid item xs={12}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 10,
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            border: `1px dashed ${theme.palette.primary.main}`,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <DateRange color="primary" />
+                          <Typography variant="body1" color="primary.main" fontWeight="medium">
+                            Duration:{" "}
+                            <strong>{differenceInDays(leaveData.endDate, leaveData.startDate) + 1} days</strong>
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+                  </Grid>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 3 }}>
+                  <Button
+                    onClick={() => setOpen(false)}
+                    variant="outlined"
+                    color="inherit"
+                    sx={{ borderRadius: 10, textTransform: "none", fontWeight: 600 }}
+                  >
+                    Cancel
+                  </Button>
+                  <GradientButton
+                    onClick={handleApplyLeave}
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Add />}
+                  >
+                    {loading ? "Submitting..." : "Submit Request"}
+                  </GradientButton>
+                </DialogActions>
+              </Dialog>
+
+              {/* Snackbar for notifications */}
+              <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                TransitionComponent={Grow}
+              >
+                <Alert
+                  onClose={handleCloseSnackbar}
+                  severity={snackbar.severity}
+                  variant="filled"
+                  sx={{
+                    width: "100%",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                    borderRadius: 10,
+                    fontWeight: 500,
+                  }}
+                  icon={
+                    snackbar.severity === "success" ? (
+                      <CheckCircleOutline />
+                    ) : snackbar.severity === "error" ? (
+                      <CancelOutlined />
+                    ) : snackbar.severity === "warning" ? (
+                      <HourglassEmpty />
+                    ) : (
+                      <Info />
+                    )
+                  }
+                >
+                  {snackbar.message}
+                </Alert>
+              </Snackbar>
+            </Container>
+          </Main>
+        </Box>
+      </LocalizationProvider>
+    </ThemeProvider>
   )
 }
 
