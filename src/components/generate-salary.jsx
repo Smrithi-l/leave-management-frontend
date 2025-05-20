@@ -32,6 +32,8 @@ import {
   Avatar,
   Snackbar,
   Alert,
+  Tooltip,
+  IconButton,
 } from "@mui/material"
 import {
   CloudUpload as CloudUploadIcon,
@@ -41,6 +43,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   FileDownload as FileDownloadIcon,
+  Edit as EditIcon,
+  AccessTime as AccessTimeIcon,
 } from "@mui/icons-material"
 import axios from "axios"
 
@@ -108,6 +112,9 @@ export default function GenerateSalary() {
     overtimeBonus: 0,
     netSalary: 0,
   })
+  const [openEditDialog, setOpenEditDialog] = useState(false)
+  const [editedEmployee, setEditedEmployee] = useState(null)
+  const [overtimeConversions, setOvertimeConversions] = useState([])
 
   useEffect(() => {
     fetchEmployees()
@@ -117,7 +124,7 @@ export default function GenerateSalary() {
     setLoadingEmployees(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/auth/employees", {
+      const response = await axios.get("http://localhost:5000/api/auth/employees", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setEmployees(response.data)
@@ -152,7 +159,7 @@ export default function GenerateSalary() {
     formData.append("pdf", file)
 
     try {
-      const response = await axios.post("https://leave-management-backend-sa2e.onrender.com/upload", formData, {
+      const response = await axios.post("http://localhost:5000/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       setExtractedText(response.data.text)
@@ -165,6 +172,7 @@ export default function GenerateSalary() {
           absentDays: Number.parseInt(response.data.pdfData.absent) || 0,
           totalHours: response.data.pdfData.totalHours || "0",
           totalOT: response.data.pdfData.totalOT || "0",
+          weeklyoff:response.data.pdfData.weeklyoff || "0",
           employee: response.data.pdfData.employee || "",
         })
       }
@@ -181,6 +189,24 @@ export default function GenerateSalary() {
     }
   }
 
+  // Calculate working days excluding weekends
+  const calculateWorkingDays = (month, year) => {
+    const daysInMonth = new Date(year, month, 0).getDate()
+    let weekendDays = 0
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month - 1, day)
+      const dayOfWeek = date.getDay()
+
+      // 0 is Sunday, 6 is Saturday
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        weekendDays++
+      }
+    }
+
+    return daysInMonth - weekendDays
+  }
+
   // Update the handleGenerateSalary function to properly fetch and handle attendance data
   const handleGenerateSalary = async (employee) => {
     setSelectedEmployee(employee)
@@ -190,30 +216,44 @@ export default function GenerateSalary() {
       // Fetch attendance data for this employee
       const token = localStorage.getItem("token")
       const attendanceResponse = await axios.get(
-        `https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/${employee._id}/attendance`,
+        `http://localhost:5000/api/dashboard/employees/${employee._id}/attendance`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       )
 
+      // Get current month and year
+      const currentDate = new Date()
+      const currentMonth = currentDate.getMonth() + 1 // JavaScript months are 0-indexed
+      const currentYear = currentDate.getFullYear()
+
+      // Calculate working days excluding weekends
+const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 if not provided
+
+
       if (attendanceResponse.data) {
-        setAttendanceData(attendanceResponse.data)
+        setAttendanceData({
+          ...attendanceResponse.data,
+          totalDays: workingDays, // Use calculated working days instead of fixed 30
+        })
         console.log("Attendance data for", employee.name, ":", attendanceResponse.data)
       } else {
-
         setAttendanceData({
-          totalDays: 30,
-          presentDays: 30,
+          totalDays: workingDays, // Use calculated working days
+          presentDays: workingDays, // Assume all working days are present if no data
           absentDays: 0,
           totalHours: "0",
           totalOT: "0",
+          weeklyoff:"0",
+          totaldays:"0",
           employee: employee.name,
         })
       }
 
-      // Calculate salary components based on attendance data
+      // Calculate salary components based on attendance data and working days
       const originalSalary = employee.salary || 0
-      const dailyWage = originalSalary / 30
+      const dailyWage = originalSalary / workingDays // Use working days for daily wage calculation
+
       const absentDays = attendanceResponse.data ? attendanceResponse.data.absentDays : 0
       const deduction = dailyWage * absentDays
 
@@ -225,6 +265,13 @@ export default function GenerateSalary() {
       const overtimeRate = (dailyWage / 8) * 1.5 // Assuming 8-hour workday and 1.5x overtime rate
       const overtimeBonus = overtimeHours * overtimeRate
 
+      // Check if overtime hours can be converted to casual leave
+      let overtimeConversionMessage = null
+      if (overtimeHours >= 60) {
+        const casualLeaveDays = Math.floor(overtimeHours / 60)
+        overtimeConversionMessage = `${overtimeHours} overtime hours can be converted to ${casualLeaveDays} day(s) of casual leave`
+      }
+
       // Calculate net salary
       const netSalary = originalSalary - deduction + overtimeBonus
 
@@ -234,6 +281,8 @@ export default function GenerateSalary() {
         deduction,
         overtimeBonus,
         netSalary,
+        overtimeConversionMessage,
+        workingDays,
       })
 
       setLoading(false)
@@ -254,8 +303,58 @@ export default function GenerateSalary() {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
+
+      // Check if overtime hours can be converted to casual leave
+      const overtimeHours = attendanceData?.totalOT ? Number.parseFloat(attendanceData.totalOT) : 0
+      let overtimeConversionResult = null
+
+      if (overtimeHours >= 60) {
+        const casualLeaveDays = Math.floor(overtimeHours / 60)
+        const remainingOTHours = overtimeHours % 60
+
+        // Call API to convert overtime to casual leave
+        try {
+          const conversionResponse = await axios.post(
+            "http://localhost:5000/api/dashboard/convert-overtime",
+            {
+              employeeId: selectedEmployee._id,
+              casualLeaveDays,
+              remainingOTHours,
+            },
+            { headers: { Authorization: `Bearer ${token}` } },
+          )
+
+          overtimeConversionResult = {
+            success: true,
+            message: `Successfully converted ${casualLeaveDays} day(s) of casual leave from overtime`,
+            casualLeaveDays,
+            remainingOTHours,
+          }
+
+          // Add to overtime conversions list
+          setOvertimeConversions([
+            ...overtimeConversions,
+            {
+              id: Date.now(),
+              employeeId: selectedEmployee._id,
+              employeeName: selectedEmployee.name,
+              overtimeHours,
+              casualLeaveDays,
+              date: new Date().toISOString(),
+            },
+          ])
+        } catch (error) {
+          console.error("Error converting overtime to casual leave:", error)
+          overtimeConversionResult = {
+            success: false,
+            message: "Failed to convert overtime to casual leave",
+          }
+        }
+      }
+
+      // Update salary
       const response = await axios.post(
-        "https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/update-salary",
+        "http://localhost:5000/api/dashboard/employees/update-salary",
         {
           employeeId: selectedEmployee._id,
         },
@@ -274,20 +373,28 @@ export default function GenerateSalary() {
         month: new Date().toLocaleString("default", { month: "long" }),
         year: new Date().getFullYear(),
         originalSalary: deductions?.originalSalary || salaryCalculation.originalSalary,
+        workingDays: salaryCalculation.workingDays,
         absentDays: deductions?.absentDays || attendanceData?.absentDays || 0,
+        weeklyoff: deductions?.weeklyoff || attendanceData?. weeklyoff || 0,
         deduction: deductions?.deduction || salaryCalculation.deduction,
         overtimeHours: deductions?.overtimeHours || attendanceData?.totalOT || 0,
         overtimeBonus: deductions?.overtimeBonus || salaryCalculation.overtimeBonus,
         netSalary: salaryCalculation.netSalary,
         generatedOn: new Date().toISOString(),
         status: "Generated",
+        overtimeConversion: overtimeConversionResult,
       }
 
       setGeneratedSalaries([newSalary, ...generatedSalaries])
 
+      let successMessage = "Salary slip generated successfully"
+      if (overtimeConversionResult && overtimeConversionResult.success) {
+        successMessage += `. ${overtimeConversionResult.message}`
+      }
+
       setSnackbar({
         open: true,
-        message: "Salary slip generated successfully",
+        message: successMessage,
         severity: "success",
       })
 
@@ -302,16 +409,22 @@ export default function GenerateSalary() {
           deduction: newSalary.deduction,
           overtimeBonus: newSalary.overtimeBonus,
           netSalary: newSalary.netSalary,
+          workingDays: newSalary.workingDays,
+          overtimeConversionMessage: overtimeConversionResult?.message,
         })
         setAttendanceData({
-          totalDays: 30,
-          presentDays: 30 - newSalary.absentDays,
+          totalDays: newSalary.workingDays,
+          presentDays: newSalary.workingDays - newSalary.absentDays,
           absentDays: newSalary.absentDays,
-          totalOT: newSalary.overtimeHours.toString(),
+          weeklyoff:newSalary.weeklyoff,
+          totalOT: overtimeConversionResult?.remainingOTHours?.toString() || newSalary.overtimeHours.toString(),
           employee: newSalary.employeeName,
         })
         setOpenSalarySlipDialog(true)
       }
+
+      // Refresh employees to get updated leave balances
+      fetchEmployees()
     } catch (error) {
       console.error("Error saving salary:", error)
       setSnackbar({
@@ -331,12 +444,21 @@ export default function GenerateSalary() {
       const token = localStorage.getItem("token")
       const newSalaries = []
       const failedEmployees = []
+      const newOvertimeConversions = []
+
+      // Get current month and year
+      const currentDate = new Date()
+      const currentMonth = currentDate.getMonth() + 1
+      const currentYear = currentDate.getFullYear()
+
+      // Calculate working days excluding weekends
+      const workingDays = calculateWorkingDays(currentMonth, currentYear)
 
       for (const employee of employees) {
         try {
           // First check if attendance data exists for this employee
           const attendanceResponse = await axios.get(
-            `https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/${employee._id}/attendance`,
+            `http://localhost:5000/api/dashboard/employees/${employee._id}/attendance`,
             {
               headers: { Authorization: `Bearer ${token}` },
             },
@@ -344,8 +466,8 @@ export default function GenerateSalary() {
 
           // If no attendance data or missing required fields, use default values
           let employeeAttendance = {
-            totalDays: 30,
-            presentDays: 30,
+            totalDays: workingDays,
+            presentDays: workingDays,
             absentDays: 0,
             totalHours: "0",
             totalOT: "0",
@@ -353,20 +475,68 @@ export default function GenerateSalary() {
           }
 
           if (attendanceResponse.data && attendanceResponse.data.employee) {
-            employeeAttendance = attendanceResponse.data
+            employeeAttendance = {
+              ...attendanceResponse.data,
+              totalDays: workingDays,
+            }
           }
+
           const originalSalary = employee.salary || 0
-          const dailyWage = originalSalary / 30
+          const dailyWage = originalSalary / workingDays
           const absentDays = employeeAttendance.absentDays || 0
           const deduction = dailyWage * absentDays
           const overtimeHours = employeeAttendance.totalOT ? Number.parseFloat(employeeAttendance.totalOT) : 0
-          const overtimeRate = (dailyWage / 8) * 1.5 
+          const overtimeRate = (dailyWage / 8) * 1.5
           const overtimeBonus = overtimeHours * overtimeRate
           const netSalary = originalSalary - deduction + overtimeBonus
 
+          // Check if overtime hours can be converted to casual leave
+          let overtimeConversionResult = null
+
+          if (overtimeHours >= 60) {
+            const casualLeaveDays = Math.floor(overtimeHours / 60)
+            const remainingOTHours = overtimeHours % 60
+
+            // Call API to convert overtime to casual leave
+            try {
+              const conversionResponse = await axios.post(
+                "http://localhost:5000/api/dashboard/convert-overtime",
+                {
+                  employeeId: employee._id,
+                  casualLeaveDays,
+                  remainingOTHours,
+                },
+                { headers: { Authorization: `Bearer ${token}` } },
+              )
+
+              overtimeConversionResult = {
+                success: true,
+                message: `Successfully converted ${casualLeaveDays} day(s) of casual leave from overtime`,
+                casualLeaveDays,
+                remainingOTHours,
+              }
+
+              // Add to new overtime conversions
+              newOvertimeConversions.push({
+                id: Date.now() + employee._id,
+                employeeId: employee._id,
+                employeeName: employee.name,
+                overtimeHours,
+                casualLeaveDays,
+                date: new Date().toISOString(),
+              })
+            } catch (error) {
+              console.error(`Error converting overtime to casual leave for ${employee.name}:`, error)
+              overtimeConversionResult = {
+                success: false,
+                message: "Failed to convert overtime to casual leave",
+              }
+            }
+          }
+
           // Call the update-salary endpoint
           const response = await axios.post(
-            "https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/update-salary",
+            "http://localhost:5000/api/dashboard/employees/update-salary",
             {
               employeeId: employee._id,
             },
@@ -382,13 +552,16 @@ export default function GenerateSalary() {
             month: new Date().toLocaleString("default", { month: "long" }),
             year: new Date().getFullYear(),
             originalSalary: originalSalary,
+            workingDays: workingDays,
+            weeklyoff: weeklyoff,
             absentDays: absentDays,
             deduction: deduction,
-            overtimeHours: overtimeHours,
+            overtimeHours: overtimeConversionResult?.remainingOTHours || overtimeHours,
             overtimeBonus: overtimeBonus,
             netSalary: netSalary,
             generatedOn: new Date().toISOString(),
             status: "Generated",
+            overtimeConversion: overtimeConversionResult,
           })
         } catch (error) {
           console.error(`Error generating salary for ${employee.name}:`, error)
@@ -402,10 +575,18 @@ export default function GenerateSalary() {
       if (newSalaries.length > 0) {
         setGeneratedSalaries([...newSalaries, ...generatedSalaries])
 
+        // Update overtime conversions
+        if (newOvertimeConversions.length > 0) {
+          setOvertimeConversions([...newOvertimeConversions, ...overtimeConversions])
+        }
+
         // Generate Excel file with all employee salary details
         exportToExcel(newSalaries)
 
         let message = `Successfully generated salary slips for ${newSalaries.length} employees and exported to Excel`
+        if (newOvertimeConversions.length > 0) {
+          message += `. Converted overtime to casual leave for ${newOvertimeConversions.length} employees.`
+        }
         if (failedEmployees.length > 0) {
           message += `. Failed for ${failedEmployees.length} employees.`
         }
@@ -423,7 +604,7 @@ export default function GenerateSalary() {
         })
       }
 
-      // Refresh employees to get updated salaries
+      // Refresh employees to get updated salaries and leave balances
       fetchEmployees()
     } catch (error) {
       console.error("Error generating all salaries:", error)
@@ -453,8 +634,9 @@ export default function GenerateSalary() {
           Department: employee.department || "N/A",
           Month: salary.month || new Date().toLocaleString("default", { month: "long" }),
           Year: salary.year || new Date().getFullYear(),
+          "Working Days": salary.workingDays || 0,
           "Original Salary": salary.originalSalary || 0,
-          "Present Days": 30 - (salary.absentDays || 0),
+          "Present Days": (salary.workingDays || 0) - (salary.absentDays || 0),
           "Absent Days": salary.absentDays || 0,
           Deduction: salary.deduction || 0,
           "Overtime Hours": salary.overtimeHours || 0,
@@ -462,6 +644,9 @@ export default function GenerateSalary() {
           "Net Salary": salary.netSalary || 0,
           "Generated On": new Date(salary.generatedOn || Date.now()).toLocaleDateString(),
           Status: salary.status || "Generated",
+          "Overtime Conversion": salary.overtimeConversion?.success
+            ? `Converted ${salary.overtimeConversion.casualLeaveDays} days of casual leave`
+            : "None",
         }
       })
 
@@ -477,6 +662,7 @@ export default function GenerateSalary() {
         { wch: 15 }, // Department
         { wch: 10 }, // Month
         { wch: 6 }, // Year
+        { wch: 12 }, // Working Days
         { wch: 15 }, // Original Salary
         { wch: 12 }, // Present Days
         { wch: 12 }, // Absent Days
@@ -486,6 +672,7 @@ export default function GenerateSalary() {
         { wch: 12 }, // Net Salary
         { wch: 15 }, // Generated On
         { wch: 10 }, // Status
+        { wch: 25 }, // Overtime Conversion
       ]
       worksheet["!cols"] = columnWidths
 
@@ -522,10 +709,12 @@ export default function GenerateSalary() {
         deduction: salary.deduction,
         overtimeBonus: salary.overtimeBonus,
         netSalary: salary.netSalary,
+        workingDays: salary.workingDays,
+        overtimeConversionMessage: salary.overtimeConversion?.message,
       })
       setAttendanceData({
-        totalDays: 30,
-        presentDays: 30 - salary.absentDays,
+        totalDays: salary.workingDays,
+        presentDays: salary.workingDays - salary.absentDays,
         absentDays: salary.absentDays,
         totalOT: salary.overtimeHours.toString(),
         employee: salary.employeeName,
@@ -663,6 +852,13 @@ export default function GenerateSalary() {
         border-radius: 4px;
         text-align: center;
       }
+      .overtime-conversion {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #e3f2fd;
+        border-radius: 4px;
+        border-left: 4px solid #2196f3;
+      }
       @media print {
         body {
           -webkit-print-color-adjust: exact;
@@ -678,7 +874,7 @@ export default function GenerateSalary() {
       <div class="header">
 <img src="1.jpg" class="company-logo" alt="Company Logo">
 
-        <div class="company-name">Closerlook Digital Software Services Private Lt</div>
+        <div class="company-name">ThingsDock</div>
         <div class="salary-slip-title">Salary Slip</div>
       </div>
 
@@ -690,7 +886,7 @@ export default function GenerateSalary() {
       </div>
 
       <div class="attendance-info">
-        <div><span class="info-label">Total Days:</span> 30</div>
+        <div><span class="info-label">Working Days:</span> ${salaryCalculation?.workingDays || 0}</div>
         <div><span class="info-label">Present Days:</span> ${attendanceData?.presentDays || 0}</div>
         <div><span class="info-label">Absent Days:</span> ${attendanceData?.absentDays || 0}</div>
         <div><span class="info-label">Overtime Hours:</span> ${attendanceData?.totalOT || 0}</div>
@@ -720,6 +916,16 @@ export default function GenerateSalary() {
           <td colspan="2"></td>
         </tr>
       </table>
+
+      ${
+        salaryCalculation?.overtimeConversionMessage
+          ? `
+      <div class="overtime-conversion">
+        <strong>Overtime Conversion:</strong> ${salaryCalculation.overtimeConversionMessage}
+      </div>
+      `
+          : ""
+      }
 
       <div class="footer">
         <div class="signature-line">Employee Signature</div>
@@ -757,8 +963,9 @@ export default function GenerateSalary() {
           Department: employee.department || "N/A",
           Month: new Date().toLocaleString("default", { month: "long" }),
           Year: new Date().getFullYear(),
+          "Working Days": salaryData.workingDays,
           "Original Salary": salaryData.originalSalary,
-          "Present Days": attendanceData?.presentDays || 30 - (attendanceData?.absentDays || 0),
+          "Present Days": attendanceData?.presentDays || salaryData.workingDays - (attendanceData?.absentDays || 0),
           "Absent Days": attendanceData?.absentDays || 0,
           Deduction: salaryData.deduction,
           "Overtime Hours": attendanceData?.totalOT || 0,
@@ -766,6 +973,7 @@ export default function GenerateSalary() {
           "Net Salary": salaryData.netSalary,
           "Generated On": new Date().toLocaleDateString(),
           Status: "Generated",
+          "Overtime Conversion": salaryData.overtimeConversionMessage || "None",
         },
       ]
 
@@ -781,6 +989,7 @@ export default function GenerateSalary() {
         { wch: 15 }, // Department
         { wch: 10 }, // Month
         { wch: 6 }, // Year
+        { wch: 12 }, // Working Days
         { wch: 15 }, // Original Salary
         { wch: 12 }, // Present Days
         { wch: 12 }, // Absent Days
@@ -790,6 +999,7 @@ export default function GenerateSalary() {
         { wch: 12 }, // Net Salary
         { wch: 15 }, // Generated On
         { wch: 10 }, // Status
+        { wch: 25 }, // Overtime Conversion
       ]
       worksheet["!cols"] = columnWidths
 
@@ -820,6 +1030,44 @@ export default function GenerateSalary() {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false })
+  }
+
+  const handleEditEmployee = (employee) => {
+    setEditedEmployee({
+      ...employee,
+      // Make a copy to avoid modifying the original
+    })
+    setOpenEditDialog(true)
+  }
+
+  const handleSaveEmployeeEdit = async () => {
+    setLoading(true)
+    try {
+      const token = localStorage.getItem("token")
+      await axios.put(
+        `http://localhost:5000/api/dashboard/update-employee/${editedEmployee._id}`,
+        editedEmployee,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+
+      setSnackbar({
+        open: true,
+        message: "Employee details updated successfully",
+        severity: "success",
+      })
+
+      setOpenEditDialog(false)
+      fetchEmployees() // Refresh the employee list
+    } catch (error) {
+      console.error("Error updating employee:", error)
+      setSnackbar({
+        open: true,
+        message: "Failed to update employee: " + (error.response?.data?.message || error.message),
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const filteredEmployees = employees.filter((employee) => {
@@ -940,6 +1188,39 @@ export default function GenerateSalary() {
         </Grid>
       </Grid>
 
+      {/* Overtime Conversions Section */}
+      {overtimeConversions.length > 0 && (
+        <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}>
+          <Box sx={{ p: 3, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+              Recent Overtime Conversions
+            </Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <StyledTableCell>Employee</StyledTableCell>
+                    <StyledTableCell>Overtime Hours</StyledTableCell>
+                    <StyledTableCell>Casual Leave Added</StyledTableCell>
+                    <StyledTableCell>Date</StyledTableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {overtimeConversions.map((conversion) => (
+                    <StyledTableRow key={conversion.id}>
+                      <TableCell>{conversion.employeeName}</TableCell>
+                      <TableCell>{conversion.overtimeHours}</TableCell>
+                      <TableCell>{conversion.casualLeaveDays} day(s)</TableCell>
+                      <TableCell>{new Date(conversion.date).toLocaleDateString()}</TableCell>
+                    </StyledTableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        </Paper>
+      )}
+
       {/* PDF Text Extractor Section */}
       <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}>
         <Box sx={{ p: 3, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
@@ -1038,6 +1319,14 @@ export default function GenerateSalary() {
                       <Typography variant="h6">{pdfData.totalHours || "N/A"}</Typography>
                     </Paper>
                   </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                    <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Hours
+                      </Typography>
+                      <Typography variant="h6">{pdfData.weeklyoff || "N/A"}</Typography>
+                    </Paper>
+                  </Grid>
                 </Grid>
               </Box>
             )}
@@ -1115,13 +1404,14 @@ export default function GenerateSalary() {
                 <StyledTableCell>Role</StyledTableCell>
                 <StyledTableCell>Team Leader</StyledTableCell>
                 <StyledTableCell>Current Salary</StyledTableCell>
+                <StyledTableCell>Leave Balance</StyledTableCell>
                 <StyledTableCell align="right">Actions</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loadingEmployees ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                     <CircularProgress size={30} />
                     <Typography variant="body2" sx={{ mt: 1 }}>
                       Loading employees...
@@ -1143,23 +1433,43 @@ export default function GenerateSalary() {
                     <TableCell>{employee.role}</TableCell>
                     <TableCell>{employee.isTeamLeader ? "Yes" : "No"}</TableCell>
                     <TableCell>${(employee.salary || 0).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Tooltip title="Casual Leave">
+                          <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
+                            <Typography variant="body2" color="primary">
+                              CL: {employee.casualleave || 0}
+                            </Typography>
+                          </Box>
+                        </Tooltip>
+                        <Tooltip title="Sick Leave">
+                          <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
+                            <Typography variant="body2" color="error">
+                              SL: {employee.sickleave || 0}
+                            </Typography>
+                          </Box>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
                     <TableCell align="right">
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        onClick={() => handleGenerateSalary(employee)}
-                        sx={{ borderRadius: 8, mr: 1 }}
-                      >
-                        Generate Salary
-                      </Button>
-                     
+                      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                   
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleGenerateSalary(employee)}
+                          sx={{ borderRadius: 8 }}
+                        >
+                          Generate Salary
+                        </Button>
+                      </Box>
                     </TableCell>
                   </StyledTableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                     <Typography variant="body2" color="text.secondary">
                       No employees found
                     </Typography>
@@ -1171,7 +1481,102 @@ export default function GenerateSalary() {
         </TableContainer>
       </Paper>
 
- 
+      {/* Generated Salary Slips */}
+      {generatedSalaries.length > 0 && (
+        <>
+          <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+              Generated Salary Slips
+            </Typography>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => exportToExcel(generatedSalaries)}
+              startIcon={<FileDownloadIcon />}
+              sx={{ borderRadius: 8 }}
+            >
+              Export All to Excel
+            </Button>
+          </Box>
+
+          <Paper
+            elevation={0}
+            sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}
+          >
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <StyledTableCell>Employee</StyledTableCell>
+                    <StyledTableCell>Month</StyledTableCell>
+                    <StyledTableCell>Working Days</StyledTableCell>
+                    <StyledTableCell>Net Salary</StyledTableCell>
+                    <StyledTableCell>Overtime</StyledTableCell>
+                    <StyledTableCell>Generated On</StyledTableCell>
+                    <StyledTableCell align="right">Actions</StyledTableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {generatedSalaries.map((salary) => (
+                    <StyledTableRow key={salary.id}>
+                      <TableCell>{salary.employeeName}</TableCell>
+                      <TableCell>{`${salary.month} ${salary.year}`}</TableCell>
+                      <TableCell>{salary.workingDays}</TableCell>
+                      <TableCell>${salary.netSalary.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {salary.overtimeHours > 0 ? (
+                            <>
+                              <AccessTimeIcon fontSize="small" color="primary" sx={{ mr: 0.5 }} />
+                              <Typography variant="body2">
+                                {salary.overtimeHours} hrs
+                                {salary.overtimeConversion?.success && (
+                                  <Tooltip title={salary.overtimeConversion.message}>
+                                    <Box component="span" sx={{ ml: 1, color: "success.main", fontWeight: "medium" }}>
+                                      (Converted)
+                                    </Box>
+                                  </Tooltip>
+                                )}
+                              </Typography>
+                            </>
+                          ) : (
+                            "None"
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>{new Date(salary.generatedOn).toLocaleDateString()}</TableCell>
+                      <TableCell align="right">
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleViewSalarySlip(salary)}
+                          sx={{ borderRadius: 8, mr: 1 }}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="small"
+                          startIcon={<PrintIcon />}
+                          onClick={() => {
+                            handleViewSalarySlip(salary)
+                            setTimeout(() => handleDownloadSalarySlip(), 500)
+                          }}
+                          sx={{ borderRadius: 8 }}
+                        >
+                          Print
+                        </Button>
+                      </TableCell>
+                    </StyledTableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </>
+      )}
 
       {/* Salary Details Dialog */}
       <Dialog open={openSalaryDialog} onClose={() => setOpenSalaryDialog(false)} maxWidth="md" fullWidth>
@@ -1220,9 +1625,9 @@ export default function GenerateSalary() {
                       <Grid item xs={12} sm={6} md={3}>
                         <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
                           <Typography variant="body2" color="text.secondary">
-                            Total Working Days
+                            Working Days
                           </Typography>
-                          <Typography variant="h6">{attendanceData.totalDays || 30}</Typography>
+                          <Typography variant="h6">{salaryCalculation.workingDays}</Typography>
                         </Paper>
                       </Grid>
                       <Grid item xs={12} sm={6} md={3}>
@@ -1247,6 +1652,14 @@ export default function GenerateSalary() {
                             Overtime Hours
                           </Typography>
                           <Typography variant="h6">{attendanceData.totalOT || 0}</Typography>
+                        </Paper>
+                      </Grid>
+                       <Grid item xs={12} sm={6} md={3}>
+                        <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
+                          <Typography variant="body2" color="text.secondary">
+                           weeklyoff
+                          </Typography>
+                          <Typography variant="h6">{attendanceData.weeklyoff || 0}</Typography>
                         </Paper>
                       </Grid>
                     </Grid>
@@ -1292,6 +1705,12 @@ export default function GenerateSalary() {
                       </TableBody>
                     </Table>
                   </TableContainer>
+
+                  {salaryCalculation.overtimeConversionMessage && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      {salaryCalculation.overtimeConversionMessage}
+                    </Alert>
+                  )}
                 </Grid>
               </Grid>
             </DialogContent>
@@ -1415,7 +1834,7 @@ export default function GenerateSalary() {
                           Working Days
                         </Typography>
                         <Typography variant="body1" sx={{ fontWeight: "medium" }}>
-                          {attendanceData.totalDays || 30}
+                          {salaryCalculation.workingDays || attendanceData.totalDays || 0}
                         </Typography>
                       </Grid>
                       <Grid item xs={6} sm={3}>
@@ -1489,6 +1908,22 @@ export default function GenerateSalary() {
                   </Table>
                 </TableContainer>
 
+                {salaryCalculation.overtimeConversionMessage && (
+                  <Box
+                    sx={{
+                      mb: 3,
+                      p: 2,
+                      bgcolor: alpha("#e3f2fd", 0.7),
+                      borderRadius: 1,
+                      borderLeft: "4px solid #2196f3",
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: "medium", color: "#0d47a1" }}>
+                      <strong>Overtime Conversion:</strong> {salaryCalculation.overtimeConversionMessage}
+                    </Typography>
+                  </Box>
+                )}
+
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                     Payment Method
@@ -1559,6 +1994,133 @@ export default function GenerateSalary() {
         )}
       </Dialog>
 
+      {/* Edit Employee Dialog */}
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
+        {editedEmployee && (
+          <>
+            <DialogTitle>
+              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                Edit Employee Details
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Name"
+                    value={editedEmployee.name}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, name: e.target.value })}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={editedEmployee.email}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, email: e.target.value })}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Salary"
+                    type="number"
+                    value={editedEmployee.salary || 0}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, salary: Number(e.target.value) })}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: (
+                        <Box component="span" sx={{ mr: 1 }}>
+                          $
+                        </Box>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Total Leaves"
+                    type="number"
+                    value={editedEmployee.totalLeaves || 0}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, totalLeaves: Number(e.target.value) })}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Sick Leave"
+                    type="number"
+                    value={editedEmployee.sickleave || 0}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, sickleave: Number(e.target.value) })}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Casual Leave"
+                    type="number"
+                    value={editedEmployee.casualleave || 0}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, casualleave: Number(e.target.value) })}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Medical Leave"
+                    type="number"
+                    value={editedEmployee.medicalleave || 0}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, medicalleave: Number(e.target.value) })}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Work From Home"
+                    type="number"
+                    value={editedEmployee.Workfromhome || 0}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, Workfromhome: Number(e.target.value) })}
+                    margin="normal"
+                  />
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, py: 2 }}>
+              <Button
+                onClick={() => setOpenEditDialog(false)}
+                color="inherit"
+                variant="outlined"
+                sx={{ borderRadius: 8 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEmployeeEdit}
+                color="primary"
+                variant="contained"
+                disabled={loading}
+                sx={{
+                  borderRadius: 8,
+                  boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
+                  "&:hover": {
+                    boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
+                  },
+                }}
+              >
+                {loading ? <CircularProgress size={24} /> : "Save Changes"}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
       {/* Snackbar for notifications */}
       <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
@@ -1608,4 +2170,3 @@ function MoneyIcon() {
     </svg>
   )
 }
-

@@ -66,6 +66,7 @@ import {
   AttachMoney as AttachMoneyIcon,
   Menu as MenuIcon,
   MoreVert as MoreVertIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material"
 import axios from "axios"
 
@@ -81,9 +82,9 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: "bold",
   backgroundColor: theme.palette.primary.main,
   color: theme.palette.common.white,
-  [theme.breakpoints.down('sm')]: {
-    padding: '8px 6px',
-    fontSize: '0.75rem',
+  [theme.breakpoints.down("sm")]: {
+    padding: "8px 6px",
+    fontSize: "0.75rem",
   },
 }))
 
@@ -119,14 +120,14 @@ const StatusChip = styled(Chip)(({ theme, status }) => {
     fontWeight: "medium",
     "& .MuiChip-label": {
       padding: "0 12px",
-      [theme.breakpoints.down('sm')]: {
-        padding: '0 4px',
-        fontSize: '0.625rem',
+      [theme.breakpoints.down("sm")]: {
+        padding: "0 4px",
+        fontSize: "0.625rem",
       },
     },
     border: `1px solid ${alpha(color, 0.3)}`,
-    [theme.breakpoints.down('sm')]: {
-      height: '24px',
+    [theme.breakpoints.down("sm")]: {
+      height: "24px",
     },
   }
 })
@@ -170,8 +171,8 @@ const CalendarDay = styled(Box)(({ theme, isWeekend, isToday, hasLeave }) => ({
       borderColor: `transparent ${theme.palette.primary.main} transparent transparent`,
     },
   }),
-  [theme.breakpoints.down('sm')]: {
-    padding: '2px',
+  [theme.breakpoints.down("sm")]: {
+    padding: "2px",
   },
 }))
 
@@ -199,10 +200,10 @@ const LeaveIndicator = styled(Box)(({ theme, status }) => {
     color: bgColor,
     display: "flex",
     alignItems: "center",
-    [theme.breakpoints.down('sm')]: {
-      height: '14px',
-      fontSize: '8px',
-      padding: '1px 2px',
+    [theme.breakpoints.down("sm")]: {
+      height: "14px",
+      fontSize: "8px",
+      padding: "1px 2px",
     },
   }
 })
@@ -218,17 +219,18 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" && pr
       duration: theme.transitions.duration.leavingScreen,
     }),
     marginLeft: 0,
-    ...(open && !isMobile && {
-      transition: theme.transitions.create("margin", {
-        easing: theme.transitions.easing.easeOut,
-        duration: theme.transitions.duration.enteringScreen,
+    ...(open &&
+      !isMobile && {
+        transition: theme.transitions.create("margin", {
+          easing: theme.transitions.easing.easeOut,
+          duration: theme.transitions.duration.enteringScreen,
+        }),
+        marginLeft: drawerWidth,
       }),
-      marginLeft: drawerWidth,
-    }),
-    [theme.breakpoints.down('sm')]: {
+    [theme.breakpoints.down("sm")]: {
       padding: theme.spacing(2),
     },
-  })
+  }),
 )
 
 const StyledTab = styled(Tab)(({ theme }) => ({
@@ -239,30 +241,31 @@ const StyledTab = styled(Tab)(({ theme }) => ({
     backgroundColor: alpha(theme.palette.primary.main, 0.08),
     color: theme.palette.primary.main,
   },
-  [theme.breakpoints.down('sm')]: {
-    minHeight: '40px',
-    fontSize: '0.75rem',
-    padding: '6px 8px',
+  [theme.breakpoints.down("sm")]: {
+    minHeight: "40px",
+    fontSize: "0.75rem",
+    padding: "6px 8px",
   },
 }))
 
 const ResponsiveTableContainer = styled(TableContainer)(({ theme }) => ({
-  [theme.breakpoints.down('md')]: {
-    overflowX: 'auto',
+  [theme.breakpoints.down("md")]: {
+    overflowX: "auto",
   },
 }))
 
 const AdminDashboard = () => {
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const isSmall = useMediaQuery(theme.breakpoints.down('sm'))
-  
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"))
+  const isSmall = useMediaQuery(theme.breakpoints.down("sm"))
+
   const [leaveRequests, setLeaveRequests] = useState([])
   const [filteredRequests, setFilteredRequests] = useState([])
   const [users, setUsers] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("All")
   const [open, setOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(!isMobile)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(0)
@@ -291,6 +294,7 @@ const AdminDashboard = () => {
     Workfromhome: 0,
     salary: 0,
   })
+  const [employeeToEdit, setEmployeeToEdit] = useState(null)
 
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [leaveHistory, setLeaveHistory] = useState([])
@@ -329,7 +333,7 @@ const AdminDashboard = () => {
 
     fetchEmployees()
   }, [])
-  
+
   useEffect(() => {
     fetchLeaveRequests()
     fetchUsers()
@@ -359,9 +363,12 @@ const AdminDashboard = () => {
   const fetchOverallStats = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/dashboard/overall-stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const response = await axios.get(
+        "https://leave-management-backend-sa2e.onrender.com/api/dashboard/overall-stats",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
       setOverallStats(response.data)
     } catch (error) {
       console.error("Error fetching overall stats:", error)
@@ -494,6 +501,44 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error("Error adding employee:", error)
       alert(error.response?.data?.message || "Failed to add employee.")
+    }
+  }
+
+  const handleEditEmployee = (employee) => {
+    setEmployeeToEdit({
+      _id: employee._id,
+      name: employee.name,
+      email: employee.email,
+      role: employee.role,
+      isTeamLeader: employee.isTeamLeader || false,
+      teamMembers: employee.teamMembers || [],
+      totalLeaves: employee.totalLeaves || 12,
+      sickleave: employee.sickleave || 0,
+      casualleave: employee.casualleave || 0,
+      medicalleave: employee.medicalleave || 0,
+      Workfromhome: employee.Workfromhome || 0,
+      salary: employee.salary || 0,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleUpdateEmployee = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      await axios.put(
+        `http://localhost:5000/api/dashboard/update-employee/${employeeToEdit._id}`,
+        employeeToEdit,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
+      fetchUsers()
+      setEditDialogOpen(false)
+      setEmployeeToEdit(null)
+      alert("Employee updated successfully!")
+    } catch (error) {
+      console.error("Error updating employee:", error)
+      alert(error.response?.data?.message || "Failed to update employee.")
     }
   }
 
@@ -631,30 +676,24 @@ const AdminDashboard = () => {
       >
         <Toolbar>
           {isMobile && (
-            <IconButton
-              edge="start"
-              color="inherit"
-              aria-label="menu"
-              onClick={toggleDrawer}
-              sx={{ mr: 1 }}
-            >
+            <IconButton edge="start" color="inherit" aria-label="menu" onClick={toggleDrawer} sx={{ mr: 1 }}>
               <MenuIcon />
             </IconButton>
           )}
-          
+
           <Typography
             variant="h6"
             component="div"
-            sx={{ 
-              flexGrow: 0, 
-              fontWeight: "bold", 
-              color: "primary.main", 
-              display: "flex", 
+            sx={{
+              flexGrow: 0,
+              fontWeight: "bold",
+              color: "primary.main",
+              display: "flex",
               alignItems: "center",
-              fontSize: isSmall ? '1rem' : '1.25rem'
+              fontSize: isSmall ? "1rem" : "1.25rem",
             }}
           >
-            <DashboardIcon sx={{ mr: 1, fontSize: isSmall ? '1.25rem' : '1.5rem' }} />
+            <DashboardIcon sx={{ mr: 1, fontSize: isSmall ? "1.25rem" : "1.5rem" }} />
             {!isSmall && "LeaveManagement"}
           </Typography>
 
@@ -702,7 +741,7 @@ const AdminDashboard = () => {
             </Box>
           </Box>
         </Toolbar>
-        
+
         {isSmall && (
           <Box sx={{ px: 2, pb: 1 }}>
             <TextField
@@ -873,7 +912,7 @@ const AdminDashboard = () => {
                 }}
               />
             </ListItem>
-            {/* New Generate Salary Option */}
+            {/* Generate Salary Option */}
             <ListItem
               button
               selected={activeTab === 5}
@@ -919,7 +958,7 @@ const AdminDashboard = () => {
         {activeTab === 0 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
                 Admin Dashboard
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -934,14 +973,28 @@ const AdminDashboard = () => {
                   <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
+                        >
                           Total Leaves
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+                        <Typography
+                          variant="h4"
+                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
+                        >
                           {total}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#3f51b5", 0.1), color: "primary.main", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: alpha("#3f51b5", 0.1),
+                          color: "primary.main",
+                          width: isSmall ? 28 : 40,
+                          height: isSmall ? 28 : 40,
+                        }}
+                      >
                         <AssessmentIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
@@ -954,14 +1007,28 @@ const AdminDashboard = () => {
                   <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
+                        >
                           Pending
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+                        <Typography
+                          variant="h4"
+                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
+                        >
                           {pending}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#ff9800", 0.1), color: "#ff9800", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: alpha("#ff9800", 0.1),
+                          color: "#ff9800",
+                          width: isSmall ? 28 : 40,
+                          height: isSmall ? 28 : 40,
+                        }}
+                      >
                         <EventIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
@@ -974,14 +1041,28 @@ const AdminDashboard = () => {
                   <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
+                        >
                           Approved
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+                        <Typography
+                          variant="h4"
+                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
+                        >
                           {approved}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#4caf50", 0.1), color: "#4caf50", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: alpha("#4caf50", 0.1),
+                          color: "#4caf50",
+                          width: isSmall ? 28 : 40,
+                          height: isSmall ? 28 : 40,
+                        }}
+                      >
                         <CheckIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
@@ -994,14 +1075,28 @@ const AdminDashboard = () => {
                   <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: isSmall ? '0.7rem' : 'inherit' }}>
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
+                        >
                           Rejected
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+                        <Typography
+                          variant="h4"
+                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
+                        >
                           {rejected}
                         </Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha("#f44336", 0.1), color: "#f44336", width: isSmall ? 28 : 40, height: isSmall ? 28 : 40 }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: alpha("#f44336", 0.1),
+                          color: "#f44336",
+                          width: isSmall ? 28 : 40,
+                          height: isSmall ? 28 : 40,
+                        }}
+                      >
                         <CloseIcon fontSize={isSmall ? "small" : "medium"} />
                       </Avatar>
                     </Box>
@@ -1012,8 +1107,17 @@ const AdminDashboard = () => {
 
             {/* Pending Leave Requests */}
             <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1rem" : "1.25rem" }}>
                   Pending Leave Requests
                 </Typography>
                 <FormControl size="small" sx={{ minWidth: isSmall ? 120 : 150 }}>
@@ -1063,7 +1167,14 @@ const AdminDashboard = () => {
                             <StyledTableRow key={leave._id}>
                               <TableCell>
                                 <Box sx={{ display: "flex", alignItems: "center" }}>
-                                  <Avatar sx={{ width: isSmall ? 24 : 32, height: isSmall ? 24 : 32, mr: 1, bgcolor: "primary.main" }}>
+                                  <Avatar
+                                    sx={{
+                                      width: isSmall ? 24 : 32,
+                                      height: isSmall ? 24 : 32,
+                                      mr: 1,
+                                      bgcolor: "primary.main",
+                                    }}
+                                  >
                                     {getInitials(leave.userId)}
                                   </Avatar>
                                   {isSmall ? getInitials(leave.userId) : leave.userId}
@@ -1077,10 +1188,7 @@ const AdminDashboard = () => {
                               </TableCell>
                               <TableCell align="right">
                                 {isSmall ? (
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => handleActionMenuOpen(e, leave)}
-                                  >
+                                  <IconButton size="small" onClick={(e) => handleActionMenuOpen(e, leave)}>
                                     <MoreVertIcon fontSize="small" />
                                   </IconButton>
                                 ) : (
@@ -1126,8 +1234,17 @@ const AdminDashboard = () => {
             </Box>
 
             {/* Employee Management */}
-            <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: 'wrap', gap: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+            <Box
+              sx={{
+                mb: 2,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1,
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1rem" : "1.25rem" }}>
                 Employee Management
               </Typography>
               <Button
@@ -1196,15 +1313,27 @@ const AdminDashboard = () => {
                             />
                           </TableCell>
                           <TableCell align="right">
-                            <Button
-                              variant="text"
-                              color="primary"
-                              size="small"
-                              onClick={() => handleEmployeeClick(user.name)}
-                              sx={{ borderRadius: 8 }}
-                            >
-                              {isSmall ? "View" : "View History"}
-                            </Button>
+                            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+                              <Button
+                                variant="text"
+                                color="primary"
+                                size="small"
+                                onClick={() => handleEmployeeClick(user.name)}
+                                sx={{ borderRadius: 8 }}
+                              >
+                                {isSmall ? "View" : "View History"}
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                startIcon={!isSmall && <EditIcon />}
+                                onClick={() => handleEditEmployee(user)}
+                                sx={{ borderRadius: 8 }}
+                              >
+                                {isSmall ? <EditIcon fontSize="small" /> : "Edit"}
+                              </Button>
+                            </Box>
                           </TableCell>
                         </StyledTableRow>
                       ))
@@ -1219,7 +1348,7 @@ const AdminDashboard = () => {
         {activeTab === 1 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
                 Leave Calendar
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -1241,24 +1370,24 @@ const AdminDashboard = () => {
                   borderBottom: "1px solid rgba(0,0,0,0.08)",
                 }}
               >
-                <Button 
-                  startIcon={<ChevronLeftIcon />} 
-                  onClick={handlePrevMonth} 
-                  sx={{ borderRadius: 8, p: isSmall ? '4px 8px' : undefined }}
+                <Button
+                  startIcon={<ChevronLeftIcon />}
+                  onClick={handlePrevMonth}
+                  sx={{ borderRadius: 8, p: isSmall ? "4px 8px" : undefined }}
                   size={isSmall ? "small" : "medium"}
                 >
                   {isSmall ? "" : "Previous"}
                 </Button>
-                <Typography variant="h6" sx={{ fontWeight: "medium", fontSize: isSmall ? '0.9rem' : '1.25rem' }}>
-                  {currentMonth.toLocaleDateString("en-US", { 
-                    month: isSmall ? "short" : "long", 
-                    year: "numeric" 
+                <Typography variant="h6" sx={{ fontWeight: "medium", fontSize: isSmall ? "0.9rem" : "1.25rem" }}>
+                  {currentMonth.toLocaleDateString("en-US", {
+                    month: isSmall ? "short" : "long",
+                    year: "numeric",
                   })}
                 </Typography>
-                <Button 
-                  endIcon={<ChevronRightIcon />} 
-                  onClick={handleNextMonth} 
-                  sx={{ borderRadius: 8, p: isSmall ? '4px 8px' : undefined }}
+                <Button
+                  endIcon={<ChevronRightIcon />}
+                  onClick={handleNextMonth}
+                  sx={{ borderRadius: 8, p: isSmall ? "4px 8px" : undefined }}
                   size={isSmall ? "small" : "medium"}
                 >
                   {isSmall ? "" : "Next"}
@@ -1275,7 +1404,7 @@ const AdminDashboard = () => {
                           textAlign: "center",
                           fontWeight: "medium",
                           color: index === 0 || index === 6 ? "error.main" : "inherit",
-                          fontSize: isSmall ? '0.7rem' : 'inherit',
+                          fontSize: isSmall ? "0.7rem" : "inherit",
                         }}
                       >
                         {isSmall ? day.charAt(0) : day}
@@ -1295,10 +1424,13 @@ const AdminDashboard = () => {
                           onClick={() => handleDateClick(day.date, day.leaves)}
                         >
                           <Box sx={{ display: "flex", justifyContent: "space-between", mb: isSmall ? 0.5 : 1 }}>
-                            <Typography variant="body2" sx={{ 
-                              fontWeight: day.isToday ? "bold" : "normal",
-                              fontSize: isSmall ? '0.7rem' : 'inherit'
-                            }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: day.isToday ? "bold" : "normal",
+                                fontSize: isSmall ? "0.7rem" : "inherit",
+                              }}
+                            >
                               {day.day}
                             </Typography>
                             {day.leaves.length > 0 && (
@@ -1350,13 +1482,16 @@ const AdminDashboard = () => {
                     alignItems: "center",
                   }}
                 >
-                  <Typography variant="h6" sx={{ 
-                    fontWeight: "medium", 
-                    display: "flex", 
-                    alignItems: "center",
-                    fontSize: isSmall ? '0.9rem' : '1.25rem'
-                  }}>
-                    <TodayIcon sx={{ mr: 1, fontSize: isSmall ? '1rem' : '1.5rem' }} />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: "medium",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: isSmall ? "0.9rem" : "1.25rem",
+                    }}
+                  >
+                    <TodayIcon sx={{ mr: 1, fontSize: isSmall ? "1rem" : "1.5rem" }} />
                     {formatDate(selectedDate)}
                   </Typography>
                   <IconButton size="small" onClick={() => setSelectedDate(null)}>
@@ -1380,7 +1515,14 @@ const AdminDashboard = () => {
                           <StyledTableRow key={index}>
                             <TableCell>
                               <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Avatar sx={{ width: isSmall ? 24 : 32, height: isSmall ? 24 : 32, mr: 1, bgcolor: "primary.main" }}>
+                                <Avatar
+                                  sx={{
+                                    width: isSmall ? 24 : 32,
+                                    height: isSmall ? 24 : 32,
+                                    mr: 1,
+                                    bgcolor: "primary.main",
+                                  }}
+                                >
                                   {getInitials(leave.userId)}
                                 </Avatar>
                                 {isSmall ? getInitials(leave.userId) : leave.userId}
@@ -1415,7 +1557,7 @@ const AdminDashboard = () => {
         {activeTab === 3 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
                 Leave History
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -1428,9 +1570,9 @@ const AdminDashboard = () => {
               sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}
             >
               <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                <Tabs 
-                  value={historyTab} 
-                  onChange={handleHistoryTabChange} 
+                <Tabs
+                  value={historyTab}
+                  onChange={handleHistoryTabChange}
                   aria-label="history tabs"
                   variant={isSmall ? "fullWidth" : "standard"}
                 >
@@ -1443,7 +1585,10 @@ const AdminDashboard = () => {
                 <Box sx={{ p: isSmall ? 1.5 : 3 }}>
                   <Grid container spacing={isSmall ? 2 : 3}>
                     <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}
+                      >
                         Leave Distribution by Type
                       </Typography>
                       <Box sx={{ height: isSmall ? 200 : 300 }}>
@@ -1451,7 +1596,10 @@ const AdminDashboard = () => {
                       </Box>
                     </Grid>
                     <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}
+                      >
                         Employee Leave Distribution
                       </Typography>
                       <Box sx={{ height: isSmall ? 300 : 400 }}>
@@ -1464,7 +1612,7 @@ const AdminDashboard = () => {
 
               {historyTab === 1 && (
                 <Box sx={{ p: isSmall ? 1.5 : 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
                     Monthly Leave Trends
                   </Typography>
                   <Box sx={{ height: isSmall ? 300 : 400 }}>
@@ -1475,7 +1623,7 @@ const AdminDashboard = () => {
             </Paper>
 
             <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1rem" : "1.25rem" }}>
                 Employee Leave History
               </Typography>
             </Box>
@@ -1515,7 +1663,14 @@ const AdminDashboard = () => {
                           <StyledTableRow key={user._id}>
                             <TableCell>
                               <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Avatar sx={{ width: isSmall ? 24 : 32, height: isSmall ? 24 : 32, mr: 1, bgcolor: "primary.main" }}>
+                                <Avatar
+                                  sx={{
+                                    width: isSmall ? 24 : 32,
+                                    height: isSmall ? 24 : 32,
+                                    mr: 1,
+                                    bgcolor: "primary.main",
+                                  }}
+                                >
                                   {getInitials(user.name)}
                                 </Avatar>
                                 {user.name}
@@ -1558,7 +1713,7 @@ const AdminDashboard = () => {
         {activeTab === 4 && (
           <>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? '1.5rem' : '2.125rem' }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
                 Leave Reports
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -1578,7 +1733,7 @@ const AdminDashboard = () => {
                     height: "100%",
                   }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
                     Leave Distribution by Type
                   </Typography>
                   <Box sx={{ height: isSmall ? 200 : 300 }}>
@@ -1597,7 +1752,7 @@ const AdminDashboard = () => {
                     height: "100%",
                   }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
                     Monthly Leave Trends
                   </Typography>
                   <Box sx={{ height: isSmall ? 200 : 300 }}>
@@ -1608,9 +1763,14 @@ const AdminDashboard = () => {
               <Grid item xs={12}>
                 <Paper
                   elevation={0}
-                  sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", p: isSmall ? 1.5 : 3 }}
+                  sx={{
+                    borderRadius: 2,
+                    overflow: "hidden",
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    p: isSmall ? 1.5 : 3,
+                  }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? '1rem' : '1.25rem' }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
                     Employee Leave Comparison
                   </Typography>
                   <Box sx={{ height: isSmall ? 300 : 400 }}>
@@ -1626,15 +1786,9 @@ const AdminDashboard = () => {
         {activeTab === 5 && <GenerateSalary />}
 
         {/* Add Employee Dialog */}
-        <Dialog 
-          open={open} 
-          onClose={() => setOpen(false)} 
-          maxWidth="sm" 
-          fullWidth
-          fullScreen={isSmall}
-        >
+        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth fullScreen={isSmall}>
           <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1.1rem' : '1.25rem' }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
               Add New Employee
             </Typography>
           </DialogTitle>
@@ -1796,16 +1950,183 @@ const AdminDashboard = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Employee Leave History Dialog */}
-        <Dialog 
-          open={Boolean(selectedEmployee)} 
-          onClose={() => setSelectedEmployee(null)} 
-          maxWidth="md" 
+        {/* Edit Employee Dialog */}
+        <Dialog
+          open={editDialogOpen}
+          onClose={() => setEditDialogOpen(false)}
+          maxWidth="sm"
           fullWidth
           fullScreen={isSmall}
         >
           <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1.1rem' : '1.25rem' }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
+              Edit Employee
+            </Typography>
+          </DialogTitle>
+          <DialogContent dividers>
+            {employeeToEdit && (
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Name"
+                    margin="dense"
+                    value={employeeToEdit.name}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, name: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    margin="dense"
+                    value={employeeToEdit.email}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, email: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Total Leaves"
+                    type="number"
+                    margin="dense"
+                    value={employeeToEdit.totalLeaves}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, totalLeaves: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Sick Leave"
+                    type="number"
+                    margin="dense"
+                    value={employeeToEdit.sickleave}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, sickleave: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Salary"
+                    type="number"
+                    margin="dense"
+                    value={employeeToEdit.salary}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, salary: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Casual Leave"
+                    type="number"
+                    margin="dense"
+                    value={employeeToEdit.casualleave}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, casualleave: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Medical Leave"
+                    type="number"
+                    margin="dense"
+                    value={employeeToEdit.medicalleave}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, medicalleave: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Work From Home"
+                    type="number"
+                    margin="dense"
+                    value={employeeToEdit.Workfromhome}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, Workfromhome: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth margin="dense">
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={employeeToEdit.role}
+                      label="Role"
+                      onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, role: e.target.value })}
+                    >
+                      <MenuItem value="employee">Employee</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={employeeToEdit.isTeamLeader}
+                        onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, isTeamLeader: e.target.checked })}
+                      />
+                    }
+                    label="Is Team Leader?"
+                  />
+                </Grid>
+                {employeeToEdit.isTeamLeader && (
+                  <Grid item xs={12}>
+                    <FormControl fullWidth margin="dense">
+                      <InputLabel>Select Team Members</InputLabel>
+                      <Select
+                        multiple
+                        value={employeeToEdit.teamMembers}
+                        onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, teamMembers: e.target.value })}
+                        renderValue={(selected) => selected.join(", ")}
+                      >
+                        {employees.map((employee) => (
+                          <MenuItem key={employee._id} value={employee._id}>
+                            {employee.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+              </Grid>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+              onClick={() => setEditDialogOpen(false)}
+              color="inherit"
+              variant="outlined"
+              sx={{ borderRadius: 8 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateEmployee}
+              color="primary"
+              variant="contained"
+              startIcon={!isSmall && <EditIcon />}
+              sx={{
+                borderRadius: 8,
+                boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
+                "&:hover": {
+                  boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
+                },
+              }}
+            >
+              {isSmall ? <EditIcon /> : "Update Employee"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Employee Leave History Dialog */}
+        <Dialog
+          open={Boolean(selectedEmployee)}
+          onClose={() => setSelectedEmployee(null)}
+          maxWidth="md"
+          fullWidth
+          fullScreen={isSmall}
+        >
+          <DialogTitle sx={{ pb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
               {selectedEmployee}'s Leave History
             </Typography>
           </DialogTitle>
@@ -1889,24 +2210,24 @@ const AdminDashboard = () => {
         </Dialog>
 
         {/* Action Menu for Mobile */}
-        <Menu
-          anchorEl={actionMenuAnchorEl}
-          open={Boolean(actionMenuAnchorEl)}
-          onClose={handleActionMenuClose}
-        >
+        <Menu anchorEl={actionMenuAnchorEl} open={Boolean(actionMenuAnchorEl)} onClose={handleActionMenuClose}>
           {selectedActionUser && (
             <>
-              <MenuItem onClick={() => {
-                handleLeaveAction(selectedActionUser, "Approved");
-                handleActionMenuClose();
-              }}>
+              <MenuItem
+                onClick={() => {
+                  handleLeaveAction(selectedActionUser, "Approved")
+                  handleActionMenuClose()
+                }}
+              >
                 <CheckIcon fontSize="small" color="success" sx={{ mr: 1 }} />
                 Approve
               </MenuItem>
-              <MenuItem onClick={() => {
-                updateLeaveStatus(selectedActionUser._id, "Rejected");
-                handleActionMenuClose();
-              }}>
+              <MenuItem
+                onClick={() => {
+                  updateLeaveStatus(selectedActionUser._id, "Rejected")
+                  handleActionMenuClose()
+                }}
+              >
                 <CloseIcon fontSize="small" color="error" sx={{ mr: 1 }} />
                 Reject
               </MenuItem>
@@ -1923,7 +2244,7 @@ const AdminDashboard = () => {
           fullScreen={isSmall}
         >
           <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? '1.1rem' : '1.25rem' }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
               Add Comment for Approval
             </Typography>
           </DialogTitle>
@@ -1942,10 +2263,10 @@ const AdminDashboard = () => {
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
-            <Button 
-              onClick={() => setCommentDialogOpen(false)} 
-              color="inherit" 
-              variant="outlined" 
+            <Button
+              onClick={() => setCommentDialogOpen(false)}
+              color="inherit"
+              variant="outlined"
               sx={{ borderRadius: 8 }}
             >
               Cancel

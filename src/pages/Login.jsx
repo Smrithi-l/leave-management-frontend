@@ -329,15 +329,7 @@ const Login = () => {
               gap: 2,
             }}
           >
-            <Typography variant="caption" color="text.secondary">
-              © {new Date().getFullYear()} Company Name
-            </Typography>
-            <Typography variant="caption" color="primary" sx={{ cursor: "pointer" }}>
-              Privacy Policy
-            </Typography>
-            <Typography variant="caption" color="primary" sx={{ cursor: "pointer" }}>
-              Terms of Service
-            </Typography>
+         
           </Box>
         </MotionPaper>
       </MotionContainer>
