@@ -21,9 +21,11 @@ import {
   Tab,
   CircularProgress,
   IconButton,
+  Chip,
+  Tooltip,
 } from "@mui/material"
 import { styled, alpha } from "@mui/material/styles"
-import { DownloadIcon, DoorClosedIcon as CloseIcon } from "lucide-react"
+import { DownloadIcon, CloverIcon as CloseIcon, AccessibilityIcon as AccessTimeIcon } from "lucide-react"
 import axios from "axios"
 import { LeaveHistoryChart } from "./leave-history-chart"
 import { LeaveTypeDistribution } from "./leave-type-distribution"
@@ -89,10 +91,38 @@ export function EmployeeSection() {
   const [leaveHistory, setLeaveHistory] = useState([])
   const [historyTab, setHistoryTab] = useState(0)
   const [exportLoading, setExportLoading] = useState(false)
+  const [employeeOvertimeData, setEmployeeOvertimeData] = useState({})
 
   useEffect(() => {
     fetchUsers()
+    fetchEmployeeOvertimeData()
   }, [])
+
+  const fetchEmployeeOvertimeData = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/pdfs")
+      const overtimeMap = {}
+
+      if (response.data && response.data.length > 0) {
+        response.data.forEach((record) => {
+          if (record.employee && record.totalOT) {
+            overtimeMap[record.employee] = {
+              totalOT: record.totalOT,
+              totalHours: record.totalHours,
+              present: record.present,
+              absent: record.absent,
+              weeklyoff: record.weeklyoff,
+              extractedAt: record.createdAt || record.updatedAt,
+            }
+          }
+        })
+      }
+
+      setEmployeeOvertimeData(overtimeMap)
+    } catch (error) {
+      console.error("Error fetching overtime data:", error)
+    }
+  }
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -113,7 +143,7 @@ export function EmployeeSection() {
     try {
       const token = localStorage.getItem("token")
       const response = await axios.get(
-        `https://leave-management-backend-sa2e.onrender.com/api/dashboard/employee-leaves/${encodeURIComponent(employee.name)}`,
+        `http://localhost:3000/api/dashboard/employee-leaves/${encodeURIComponent(employee.name)}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -137,14 +167,13 @@ export function EmployeeSection() {
     try {
       const token = localStorage.getItem("token")
       const response = await axios.get(
-        `https://leave-management-backend-sa2e.onrender.com/api/dashboard/export-leave-data/${encodeURIComponent(selectedEmployee.name)}`,
+        `http://localhost:3000/api/dashboard/export-leave-data/${encodeURIComponent(selectedEmployee.name)}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
         },
       )
 
-      // Create a download link and trigger download
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement("a")
       link.href = url
@@ -179,7 +208,6 @@ export function EmployeeSection() {
         workFromHome: [],
       }
 
-    // Group leaves by month and type
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     const leavesByMonth = {}
 
@@ -212,7 +240,6 @@ export function EmployeeSection() {
       }
     })
 
-    // Convert to format needed by chart
     const sickLeave = months.map((month) => ({ month, count: leavesByMonth[month].sick }))
     const casualLeave = months.map((month) => ({ month, count: leavesByMonth[month].casual }))
     const medicalLeave = months.map((month) => ({ month, count: leavesByMonth[month].medical }))
@@ -265,7 +292,7 @@ export function EmployeeSection() {
           Employees
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          View and manage employee information and leave history
+          View and manage employee leave balances and overtime information
         </Typography>
       </Box>
 
@@ -276,17 +303,17 @@ export function EmployeeSection() {
               <TableRow>
                 <StyledTableCell>Name</StyledTableCell>
                 <StyledTableCell>Email</StyledTableCell>
-                <StyledTableCell>Total Leaves</StyledTableCell>
                 <StyledTableCell>Sick Leave</StyledTableCell>
                 <StyledTableCell>Casual Leave</StyledTableCell>
                 <StyledTableCell>Medical Leave</StyledTableCell>
                 <StyledTableCell>Work From Home</StyledTableCell>
+                <StyledTableCell>Overtime Hours</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                     <CircularProgress size={30} />
                     <Typography variant="body2" sx={{ mt: 1 }}>
                       Loading employees...
@@ -294,31 +321,52 @@ export function EmployeeSection() {
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user) => (
-                  <StyledTableRow key={user._id} onClick={() => handleEmployeeClick(user)}>
-                    <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: "primary.main" }}>
-                          {getInitials(user.name)}
-                        </Avatar>
-                        {user.name}
-                      </Box>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.totalLeaves || 12}</TableCell>
-                    <TableCell>{user.sickleave || 0}</TableCell>
-                    <TableCell>{user.casualleave || 0}</TableCell>
-                    <TableCell>{user.medicalleave || 0}</TableCell>
-                    <TableCell>{user.Workfromhome || 0}</TableCell>
-                  </StyledTableRow>
-                ))
+                users.map((user) => {
+                  const overtimeInfo = employeeOvertimeData[user.name] || {}
+
+                  return (
+                    <StyledTableRow key={user._id} onClick={() => handleEmployeeClick(user)}>
+                      <TableCell>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: "primary.main" }}>
+                            {getInitials(user.name)}
+                          </Avatar>
+                          {user.name}
+                        </Box>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.sickleave || 0}</TableCell>
+                      <TableCell>{user.casualleave || 0}</TableCell>
+                      <TableCell>{user.medicalleave || 0}</TableCell>
+                      <TableCell>{user.Workfromhome || 0}</TableCell>
+                      <TableCell>
+                        {overtimeInfo.totalOT ? (
+                          <Tooltip
+                            title={`Last extracted: ${overtimeInfo.extractedAt ? new Date(overtimeInfo.extractedAt).toLocaleDateString() : "Unknown"}`}
+                          >
+                            <Chip
+                              icon={<AccessTimeIcon />}
+                              label={`${overtimeInfo.totalOT} hrs`}
+                              color="primary"
+                              variant="outlined"
+                              size="small"
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No data
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </StyledTableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
         </TableContainer>
       </Paper>
 
-      {/* Employee Leave History Dialog */}
       <Dialog open={Boolean(selectedEmployee)} onClose={() => setSelectedEmployee(null)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ pb: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6" sx={{ fontWeight: "bold" }}>
@@ -421,4 +469,3 @@ export function EmployeeSection() {
     </>
   )
 }
-
