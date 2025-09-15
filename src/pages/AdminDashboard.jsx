@@ -363,8 +363,9 @@ const AdminDashboard = () => {
   const fetchOverallStats = async () => {
     try {
       const token = localStorage.getItem("token")
+     
       const response = await axios.get(
-        "https://leave-management-backend-sa2e.onrender.com/api/dashboard/overall-stats",
+        "http://localhost:5000/api/dashboard/overall-stats",
         {
           headers: { Authorization: `Bearer ${token}` },
         },
