@@ -609,6 +609,11 @@ const EmployeeDashboard = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [activeView, setActiveView] = useState("dashboard")
+  const [overtimeData, setOvertimeData] = useState({
+    totalOT: "0",
+    canConvertToLeave: false,
+    convertibleDays: 0,
+  })
 
   const pendingLeaves = leaveHistory.filter((leave) => leave.status === "Pending").length
   const approvedLeaves = leaveHistory.filter((leave) => leave.status === "Approved").length
@@ -624,13 +629,33 @@ const EmployeeDashboard = () => {
     checkUserRole()
     fetchLeaveHistory()
     fetchLeaveBalance()
+    fetchOvertimeData() // Added to fetch overtime data
   }, [])
 
-  // Function to check if the logged-in user is a team lead
+  const fetchOvertimeData = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      const response = await axios.get("http://localhost:5000/api/dashboard/overtime-data", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (response.data) {
+        const overtimeHours = Number.parseFloat(response.data.totalOT) || 0
+        setOvertimeData({
+          totalOT: response.data.totalOT || "0",
+          canConvertToLeave: overtimeHours >= 60,
+          convertibleDays: Math.floor(overtimeHours / 60),
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching overtime data:", error)
+    }
+  }
+
   const checkUserRole = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/dashboard/user-info", {
+      const response = await axios.get("http://localhost:5000/api/dashboard/user-info", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -657,11 +682,11 @@ const EmployeeDashboard = () => {
       setLoading(true)
       const token = localStorage.getItem("token")
 
-      const leaveResponse = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/dashboard/leave-history", {
+      const leaveResponse = await axios.get("http://localhost:5000/api/dashboard/leave-history", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
-      setLeaveHistory(leaveResponse.data)
+      setLeaveHistory(Array.isArray(leaveResponse.data) ? leaveResponse.data : [])
     } catch (error) {
       console.error("Error fetching leave history:", error)
       setSnackbar({
@@ -669,6 +694,7 @@ const EmployeeDashboard = () => {
         message: "Failed to fetch data",
         severity: "error",
       })
+      setLeaveHistory([])
     } finally {
       setLoading(false)
     }
@@ -677,7 +703,7 @@ const EmployeeDashboard = () => {
   const fetchLeaveBalance = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/dashboard/user-info", {
+      const response = await axios.get("http://localhost:5000/api/dashboard/user-info", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -703,11 +729,11 @@ const EmployeeDashboard = () => {
       setLoading(true)
       const token = localStorage.getItem("token")
 
-      const teamResponse = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/dashboard/members", {
+      const teamResponse = await axios.get("http://localhost:5000/api/dashboard/members", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
-      const leaveResponse = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/dashboard/leave-requests", {
+      const leaveResponse = await axios.get("http://localhost:5000/api/dashboard/leave-requests", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -729,7 +755,7 @@ const EmployeeDashboard = () => {
     try {
       setLoading(true)
       const token = localStorage.getItem("token")
-      await axios.delete(`https://leave-management-backend-sa2e.onrender.com/api/dashboard/delete-leave/${leaveId}`, {
+      await axios.delete(`http://localhost:5000/api/dashboard/delete-leave/${leaveId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -757,7 +783,7 @@ const EmployeeDashboard = () => {
       const token = localStorage.getItem("token")
 
       await axios.put(
-        `https://leave-management-backend-sa2e.onrender.com/api/dashboard/update-leave/${leaveId}`,
+        `http://localhost:5000/api/dashboard/update-leave/${leaveId}`,
         { status: action },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -829,7 +855,7 @@ const EmployeeDashboard = () => {
         return
       }
 
-      await axios.post("https://leave-management-backend-sa2e.onrender.com/api/dashboard/apply-leave", formattedData, {
+      await axios.post("http://localhost:5000/api/dashboard/apply-leave", formattedData, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -2518,7 +2544,7 @@ const EmployeeDashboard = () => {
                 fullScreen={isMobile}
                 PaperProps={{
                   sx: {
-                    borderRadius: isMobile ? 0:5,
+                    borderRadius: isMobile ? 0 : 5,
                     overflow: "hidden",
                     backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.paper, 0.9)})`,
                     backdropFilter: "blur(10px)",
@@ -2697,4 +2723,3 @@ const EmployeeDashboard = () => {
 }
 
 export default EmployeeDashboard
-
