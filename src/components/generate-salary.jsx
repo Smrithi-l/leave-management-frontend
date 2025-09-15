@@ -136,7 +136,7 @@ export default function GenerateSalary() {
 
   const fetchExtractedDataList = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/pdfs")
+      const response = await axios.get("https://leave-management-backend-sa2e.onrender.com/pdfs")
       if (response.data) {
         // Group by month/year and employee
         const groupedData = response.data.reduce((acc, item) => {
@@ -169,7 +169,7 @@ export default function GenerateSalary() {
 
   const fetchPdfData = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/pdfs")
+      const response = await axios.get("https://leave-management-backend-sa2e.onrender.com/pdfs")
       if (response.data && response.data.length > 0) {
         // Get the latest PDF data
         const latestPdf = response.data[response.data.length - 1]
@@ -191,7 +191,7 @@ export default function GenerateSalary() {
 
   const handleReset = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/reset-pdf-data")
+      const response = await axios.post("https://leave-management-backend-sa2e.onrender.com/reset-pdf-data")
 
       // Reset local state
       setExtractedText("")
@@ -218,7 +218,7 @@ export default function GenerateSalary() {
     setLoadingEmployees(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.get("http://localhost:5000/api/auth/employees", {
+      const response = await axios.get("https://leave-management-backend-sa2e.onrender.com/api/auth/employees", {
         headers: { Authorization: `Bearer ${token}` },
       })
       setEmployees(response.data)
@@ -254,7 +254,7 @@ export default function GenerateSalary() {
 
     try {
       // First, extract the data to check for duplicates
-      const response = await axios.post("http://localhost:5000/upload-preview", formData, {
+      const response = await axios.post("https://leave-management-backend-sa2e.onrender.com/upload-preview", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
 
@@ -287,7 +287,7 @@ export default function GenerateSalary() {
 
   const proceedWithUpload = async (formData) => {
     try {
-      const response = await axios.post("http://localhost:5000/upload", formData, {
+      const response = await axios.post("https://leave-management-backend-sa2e.onrender.com/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
 
@@ -336,7 +336,7 @@ export default function GenerateSalary() {
       if (existingData && existingData.length > 0) {
         try {
           // Delete existing records
-          await Promise.all(existingData.map((item) => axios.delete(`http://localhost:5000/pdfs/${item._id}`)))
+          await Promise.all(existingData.map((item) => axios.delete(`https://leave-management-backend-sa2e.onrender.com/pdfs/${item._id}`)))
 
           // Upload new data
           const formData = new FormData()
@@ -359,7 +359,7 @@ export default function GenerateSalary() {
 
   const handleDeleteExtractedData = async (dataId) => {
     try {
-      await axios.delete(`http://localhost:5000/pdfs/${dataId}`)
+      await axios.delete(`https://leave-management-backend-sa2e.onrender.com/pdfs/${dataId}`)
 
       setSnackbar({
         open: true,
@@ -408,7 +408,7 @@ export default function GenerateSalary() {
       // Fetch attendance data for this employee
       const token = localStorage.getItem("token")
       const attendanceResponse = await axios.get(
-        `http://localhost:5000/api/dashboard/employees/${employee._id}/attendance`,
+        `https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/${employee._id}/attendance`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -506,7 +506,7 @@ export default function GenerateSalary() {
         // Call API to convert overtime to casual leave
         try {
           const conversionResponse = await axios.post(
-            "http://localhost:5000/api/dashboard/convert-overtime",
+            "https://leave-management-backend-sa2e.onrender.com/api/dashboard/convert-overtime",
             {
               employeeId: selectedEmployee._id,
               casualLeaveDays,
@@ -545,7 +545,7 @@ export default function GenerateSalary() {
 
       // Update salary
       const response = await axios.post(
-        "http://localhost:5000/api/dashboard/employees/update-salary",
+        "https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/update-salary",
         {
           employeeId: selectedEmployee._id,
         },
@@ -658,7 +658,7 @@ export default function GenerateSalary() {
       for (const employee of employeesWithData) {
         try {
           const attendanceResponse = await axios.get(
-            `http://localhost:5000/api/dashboard/employees/${employee._id}/attendance`,
+            `https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/${employee._id}/attendance`,
             {
               headers: { Authorization: `Bearer ${token}` },
             },
@@ -696,7 +696,7 @@ export default function GenerateSalary() {
 
             try {
               const conversionResponse = await axios.post(
-                "http://localhost:5000/api/dashboard/convert-overtime",
+                "https://leave-management-backend-sa2e.onrender.com/api/dashboard/convert-overtime",
                 {
                   employeeId: employee._id,
                   casualLeaveDays,
@@ -729,7 +729,7 @@ export default function GenerateSalary() {
           }
 
           const response = await axios.post(
-            "http://localhost:5000/api/dashboard/employees/update-salary",
+            "https://leave-management-backend-sa2e.onrender.com/api/dashboard/employees/update-salary",
             {
               employeeId: employee._id,
             },
@@ -1248,7 +1248,7 @@ export default function GenerateSalary() {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      await axios.put(`http://localhost:5000/api/dashboard/update-employee/${editedEmployee._id}`, editedEmployee, {
+      await axios.put(`https://leave-management-backend-sa2e.onrender.com/api/dashboard/update-employee/${editedEmployee._id}`, editedEmployee, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
