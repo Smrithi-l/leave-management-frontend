@@ -8,7 +8,6 @@ import {
   Button,
   Grid,
   Card,
-  CardContent,
   TextField,
   Box,
   Table,
@@ -34,17 +33,19 @@ import {
   Alert,
   Tooltip,
   IconButton,
+  Chip,
 } from "@mui/material"
 import {
   CloudUpload as CloudUploadIcon,
   Download as DownloadIcon,
   Print as PrintIcon,
-  Person as PersonIcon,
   Search as SearchIcon,
   FilterList as FilterListIcon,
   FileDownload as FileDownloadIcon,
-  Edit as EditIcon,
   AccessTime as AccessTimeIcon,
+  RestartAlt as RestartAltIcon,
+  Delete as DeleteIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material"
 import axios from "axios"
 
@@ -115,10 +116,103 @@ export default function GenerateSalary() {
   const [openEditDialog, setOpenEditDialog] = useState(false)
   const [editedEmployee, setEditedEmployee] = useState(null)
   const [overtimeConversions, setOvertimeConversions] = useState([])
+  const [extractedDataList, setExtractedDataList] = useState([])
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [duplicateDialog, setDuplicateDialog] = useState({
+    open: false,
+    existingData: null,
+    newData: null,
+  })
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
+    open: false,
+    dataId: null,
+  })
 
   useEffect(() => {
     fetchEmployees()
+    fetchExtractedDataList()
   }, [])
+
+  const fetchExtractedDataList = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/pdfs")
+      if (response.data) {
+        // Group by month/year and employee
+        const groupedData = response.data.reduce((acc, item) => {
+          const date = new Date(item.createdAt || item.updatedAt || Date.now())
+          const monthYear = `${date.getMonth() + 1}-${date.getFullYear()}`
+
+          if (!acc[monthYear]) {
+            acc[monthYear] = []
+          }
+
+          acc[monthYear].push({
+            ...item,
+            extractedAt: date,
+          })
+
+          return acc
+        }, {})
+
+        setExtractedDataList(groupedData)
+      }
+    } catch (error) {
+      console.error("Error fetching extracted data:", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchEmployees()
+    fetchPdfData() // Added to fetch existing PDF data on component mount
+  }, [])
+
+  const fetchPdfData = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/pdfs")
+      if (response.data && response.data.length > 0) {
+        // Get the latest PDF data
+        const latestPdf = response.data[response.data.length - 1]
+        setPdfData(latestPdf)
+        setAttendanceData({
+          totalDays: latestPdf.totaldays || 30,
+          presentDays: Number.parseInt(latestPdf.present) || 0,
+          absentDays: Number.parseInt(latestPdf.absent) || 0,
+          totalHours: latestPdf.totalHours || "0",
+          totalOT: latestPdf.totalOT || "0",
+          weeklyoff: latestPdf.weeklyoff || "0",
+          employee: latestPdf.employee || "",
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching PDF data:", error)
+    }
+  }
+
+  const handleReset = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/reset-pdf-data")
+
+      // Reset local state
+      setExtractedText("")
+      setPdfData(null)
+      setAttendanceData(null)
+      setFile(null)
+
+      setSnackbar({
+        open: true,
+        message: "All PDF data has been reset successfully!",
+        severity: "success",
+      })
+    } catch (error) {
+      console.error("Error resetting data:", error)
+      setSnackbar({
+        open: true,
+        message: "Failed to reset data",
+        severity: "error",
+      })
+    }
+  }
 
   const fetchEmployees = async () => {
     setLoadingEmployees(true)
@@ -159,23 +253,67 @@ export default function GenerateSalary() {
     formData.append("pdf", file)
 
     try {
+      // First, extract the data to check for duplicates
+      const response = await axios.post("http://localhost:5000/upload-preview", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+
+      const currentMonthYear = `${selectedMonth}-${selectedYear}`
+      const existingDataForMonth = extractedDataList[currentMonthYear] || []
+
+      // Check if there's already data for this month
+      if (existingDataForMonth.length > 0) {
+        setDuplicateDialog({
+          open: true,
+          existingData: existingDataForMonth[0],
+          newData: response.data,
+        })
+        setLoading(false)
+        return
+      }
+
+      // If no duplicates, proceed with normal upload
+      await proceedWithUpload(formData)
+    } catch (error) {
+      console.error("Error uploading file:", error)
+      setSnackbar({
+        open: true,
+        message: "Failed to upload file",
+        severity: "error",
+      })
+      setLoading(false)
+    }
+  }
+
+  const proceedWithUpload = async (formData) => {
+    try {
       const response = await axios.post("http://localhost:5000/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
+
       setExtractedText(response.data.text)
       setPdfData(response.data.pdfData)
 
       if (response.data.pdfData) {
         setAttendanceData({
-          totalDays: 30, // Default value
+          totalDays: 30,
           presentDays: Number.parseInt(response.data.pdfData.present) || 0,
           absentDays: Number.parseInt(response.data.pdfData.absent) || 0,
           totalHours: response.data.pdfData.totalHours || "0",
           totalOT: response.data.pdfData.totalOT || "0",
-          weeklyoff:response.data.pdfData.weeklyoff || "0",
+          weeklyoff: response.data.pdfData.weeklyoff || "0",
           employee: response.data.pdfData.employee || "",
         })
       }
+
+      // Refresh the extracted data list
+      fetchExtractedDataList()
+
+      setSnackbar({
+        open: true,
+        message: "PDF uploaded and data extracted successfully!",
+        severity: "success",
+      })
 
       setLoading(false)
     } catch (error) {
@@ -187,6 +325,60 @@ export default function GenerateSalary() {
       })
       setLoading(false)
     }
+  }
+
+  const handleDuplicateChoice = async (choice) => {
+    if (choice === "replace") {
+      // Delete existing data for the month and upload new
+      const currentMonthYear = `${selectedMonth}-${selectedYear}`
+      const existingData = extractedDataList[currentMonthYear]
+
+      if (existingData && existingData.length > 0) {
+        try {
+          // Delete existing records
+          await Promise.all(existingData.map((item) => axios.delete(`http://localhost:5000/pdfs/${item._id}`)))
+
+          // Upload new data
+          const formData = new FormData()
+          formData.append("pdf", file)
+          await proceedWithUpload(formData)
+        } catch (error) {
+          console.error("Error replacing data:", error)
+          setSnackbar({
+            open: true,
+            message: "Failed to replace existing data",
+            severity: "error",
+          })
+        }
+      }
+    }
+
+    setDuplicateDialog({ open: false, existingData: null, newData: null })
+    setLoading(false)
+  }
+
+  const handleDeleteExtractedData = async (dataId) => {
+    try {
+      await axios.delete(`http://localhost:5000/pdfs/${dataId}`)
+
+      setSnackbar({
+        open: true,
+        message: "Extracted data deleted successfully",
+        severity: "success",
+      })
+
+      // Refresh the list
+      fetchExtractedDataList()
+    } catch (error) {
+      console.error("Error deleting data:", error)
+      setSnackbar({
+        open: true,
+        message: "Failed to delete data",
+        severity: "error",
+      })
+    }
+
+    setDeleteConfirmDialog({ open: false, dataId: null })
   }
 
   // Calculate working days excluding weekends
@@ -228,8 +420,7 @@ export default function GenerateSalary() {
       const currentYear = currentDate.getFullYear()
 
       // Calculate working days excluding weekends
-const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 if not provided
-
+      const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 if not provided
 
       if (attendanceResponse.data) {
         setAttendanceData({
@@ -244,8 +435,8 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
           absentDays: 0,
           totalHours: "0",
           totalOT: "0",
-          weeklyoff:"0",
-          totaldays:"0",
+          weeklyoff: "0",
+          totaldays: "0",
           employee: employee.name,
         })
       }
@@ -375,7 +566,7 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
         originalSalary: deductions?.originalSalary || salaryCalculation.originalSalary,
         workingDays: salaryCalculation.workingDays,
         absentDays: deductions?.absentDays || attendanceData?.absentDays || 0,
-        weeklyoff: deductions?.weeklyoff || attendanceData?. weeklyoff || 0,
+        weeklyoff: deductions?.weeklyoff || attendanceData?.weeklyoff || 0,
         deduction: deductions?.deduction || salaryCalculation.deduction,
         overtimeHours: deductions?.overtimeHours || attendanceData?.totalOT || 0,
         overtimeBonus: deductions?.overtimeBonus || salaryCalculation.overtimeBonus,
@@ -416,7 +607,7 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
           totalDays: newSalary.workingDays,
           presentDays: newSalary.workingDays - newSalary.absentDays,
           absentDays: newSalary.absentDays,
-          weeklyoff:newSalary.weeklyoff,
+          weeklyoff: newSalary.weeklyoff,
           totalOT: overtimeConversionResult?.remainingOTHours?.toString() || newSalary.overtimeHours.toString(),
           employee: newSalary.employeeName,
         })
@@ -437,7 +628,6 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
     }
   }
 
-  // Update the handleGenerateAllSalaries function to properly handle API responses
   const handleGenerateAllSalaries = async () => {
     setLoading(true)
     try {
@@ -446,25 +636,33 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
       const failedEmployees = []
       const newOvertimeConversions = []
 
-      // Get current month and year
-      const currentDate = new Date()
-      const currentMonth = currentDate.getMonth() + 1
-      const currentYear = currentDate.getFullYear()
+      const workingDays = calculateWorkingDays(selectedMonth, selectedYear)
 
-      // Calculate working days excluding weekends
-      const workingDays = calculateWorkingDays(currentMonth, currentYear)
+      // Filter employees and only generate for those with data in selected month
+      const currentMonthYear = `${selectedMonth}-${selectedYear}`
+      const monthlyData = extractedDataList[currentMonthYear] || []
 
-      for (const employee of employees) {
+      if (monthlyData.length === 0) {
+        setSnackbar({
+          open: true,
+          message: `No extracted data found for ${getMonthName(selectedMonth)} ${selectedYear}. Please upload attendance data first.`,
+          severity: "warning",
+        })
+        setLoading(false)
+        return
+      }
+
+      // Get employees who have data for this month
+      const employeesWithData = employees.filter((emp) => monthlyData.some((data) => data.employee === emp.name))
+
+      for (const employee of employeesWithData) {
         try {
-          // First check if attendance data exists for this employee
           const attendanceResponse = await axios.get(
             `http://localhost:5000/api/dashboard/employees/${employee._id}/attendance`,
             {
               headers: { Authorization: `Bearer ${token}` },
             },
           )
-
-          // If no attendance data or missing required fields, use default values
           let employeeAttendance = {
             totalDays: workingDays,
             presentDays: workingDays,
@@ -485,19 +683,17 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
           const dailyWage = originalSalary / workingDays
           const absentDays = employeeAttendance.absentDays || 0
           const deduction = dailyWage * absentDays
-          const overtimeHours = employeeAttendance.totalOT ? Number.parseFloat(employeeAttendance.totalOT) : 0
+          const overtimeHours = employeeAttendance.totalOT
           const overtimeRate = (dailyWage / 8) * 1.5
           const overtimeBonus = overtimeHours * overtimeRate
           const netSalary = originalSalary - deduction + overtimeBonus
-
-          // Check if overtime hours can be converted to casual leave
+          console.log(overtimeHours)
           let overtimeConversionResult = null
 
-          if (overtimeHours >= 60) {
+          if (overtimeHours >= 1) {
             const casualLeaveDays = Math.floor(overtimeHours / 60)
             const remainingOTHours = overtimeHours % 60
 
-            // Call API to convert overtime to casual leave
             try {
               const conversionResponse = await axios.post(
                 "http://localhost:5000/api/dashboard/convert-overtime",
@@ -515,8 +711,6 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
                 casualLeaveDays,
                 remainingOTHours,
               }
-
-              // Add to new overtime conversions
               newOvertimeConversions.push({
                 id: Date.now() + employee._id,
                 employeeId: employee._id,
@@ -534,7 +728,6 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
             }
           }
 
-          // Call the update-salary endpoint
           const response = await axios.post(
             "http://localhost:5000/api/dashboard/employees/update-salary",
             {
@@ -553,7 +746,6 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
             year: new Date().getFullYear(),
             originalSalary: originalSalary,
             workingDays: workingDays,
-            weeklyoff: weeklyoff,
             absentDays: absentDays,
             deduction: deduction,
             overtimeHours: overtimeConversionResult?.remainingOTHours || overtimeHours,
@@ -575,12 +767,10 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
       if (newSalaries.length > 0) {
         setGeneratedSalaries([...newSalaries, ...generatedSalaries])
 
-        // Update overtime conversions
         if (newOvertimeConversions.length > 0) {
           setOvertimeConversions([...newOvertimeConversions, ...overtimeConversions])
         }
 
-        // Generate Excel file with all employee salary details
         exportToExcel(newSalaries)
 
         let message = `Successfully generated salary slips for ${newSalaries.length} employees and exported to Excel`
@@ -604,7 +794,6 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
         })
       }
 
-      // Refresh employees to get updated salaries and leave balances
       fetchEmployees()
     } catch (error) {
       console.error("Error generating all salaries:", error)
@@ -618,12 +807,27 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
     }
   }
 
-  // Update the exportToExcel function to handle potential missing data
+  const getMonthName = (monthNumber) => {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ]
+    return months[monthNumber - 1]
+  }
+
   const exportToExcel = (salaryData) => {
     try {
-      // Format data for Excel with more details
       const excelData = salaryData.map((salary) => {
-        // Find the employee to get additional details
         const employee = employees.find((emp) => emp._id === salary.employeeId) || {}
 
         return {
@@ -1044,11 +1248,9 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      await axios.put(
-        `http://localhost:5000/api/dashboard/update-employee/${editedEmployee._id}`,
-        editedEmployee,
-        { headers: { Authorization: `Bearer ${token}` } },
-      )
+      await axios.put(`http://localhost:5000/api/dashboard/update-employee/${editedEmployee._id}`, editedEmployee, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
 
       setSnackbar({
         open: true,
@@ -1101,125 +1303,124 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
           Salary Management
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Generate and manage employee salary slips
+          Generate and manage employee salary slips with monthly filtering
         </Typography>
       </Box>
 
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <SummaryCard cardcolor="#3f51b5">
-            <CardContent>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Total Employees
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
-                    {employees.length}
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: alpha("#3f51b5", 0.1), color: "primary.main" }}>
-                  <PersonIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </SummaryCard>
-        </Grid>
+      <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}>
+        <Box sx={{ p: 3, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            Select Month & Year for Payroll
+          </Typography>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Month</InputLabel>
+                <Select value={selectedMonth} label="Month" onChange={(e) => setSelectedMonth(e.target.value)}>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <MenuItem key={i + 1} value={i + 1}>
+                      {getMonthName(i + 1)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Year</InputLabel>
+                <Select value={selectedYear} label="Year" onChange={(e) => setSelectedYear(e.target.value)}>
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const year = new Date().getFullYear() - 2 + i
+                    return (
+                      <MenuItem key={year} value={year}>
+                        {year}
+                      </MenuItem>
+                    )
+                  })}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body2" color="text.secondary">
+                Total Payroll for {getMonthName(selectedMonth)} {selectedYear}: ${(() => {
+                  const currentMonthYear = `${selectedMonth}-${selectedYear}`
+                  const monthlyData = extractedDataList[currentMonthYear] || []
+                  const employeesWithData = employees.filter((emp) =>
+                    monthlyData.some((data) => data.employee === emp.name),
+                  )
+                  return employeesWithData.reduce((sum, emp) => sum + (emp.salary || 0), 0).toLocaleString()
+                })()}
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <SummaryCard cardcolor="#4caf50">
-            <CardContent>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Salary Slips Generated
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
-                    {generatedSalaries.length}
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: alpha("#4caf50", 0.1), color: "#4caf50" }}>
-                  <DownloadIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </SummaryCard>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <SummaryCard cardcolor="#ff9800">
-            <CardContent>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Current Month
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
-                    {new Date().toLocaleString("default", { month: "long" })}
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: alpha("#ff9800", 0.1), color: "#ff9800" }}>
-                  <CalendarIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </SummaryCard>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <SummaryCard cardcolor="#f44336">
-            <CardContent>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Total Payroll
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: "bold", mt: 1 }}>
-                    ${employees.reduce((sum, emp) => sum + (emp.salary || 0), 0).toLocaleString()}
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: alpha("#f44336", 0.1), color: "#f44336" }}>
-                  <MoneyIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </SummaryCard>
-        </Grid>
-      </Grid>
-
-      {/* Overtime Conversions Section */}
-      {overtimeConversions.length > 0 && (
-        <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}>
-          <Box sx={{ p: 3, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-              Recent Overtime Conversions
-            </Typography>
+      <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}>
+        <Box sx={{ p: 3, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+            Extracted Data History
+          </Typography>
+          {Object.keys(extractedDataList).length > 0 ? (
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <StyledTableCell>Employee</StyledTableCell>
-                    <StyledTableCell>Overtime Hours</StyledTableCell>
-                    <StyledTableCell>Casual Leave Added</StyledTableCell>
-                    <StyledTableCell>Date</StyledTableCell>
+                    <StyledTableCell>Month/Year</StyledTableCell>
+                    <StyledTableCell>Employees</StyledTableCell>
+                    <StyledTableCell>Extracted On</StyledTableCell>
+                    <StyledTableCell>Total Records</StyledTableCell>
+                    <StyledTableCell align="right">Actions</StyledTableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {overtimeConversions.map((conversion) => (
-                    <StyledTableRow key={conversion.id}>
-                      <TableCell>{conversion.employeeName}</TableCell>
-                      <TableCell>{conversion.overtimeHours}</TableCell>
-                      <TableCell>{conversion.casualLeaveDays} day(s)</TableCell>
-                      <TableCell>{new Date(conversion.date).toLocaleDateString()}</TableCell>
-                    </StyledTableRow>
-                  ))}
+                  {Object.entries(extractedDataList).map(([monthYear, data]) => {
+                    const [month, year] = monthYear.split("-")
+                    const latestExtraction = data.reduce((latest, current) =>
+                      new Date(current.extractedAt) > new Date(latest.extractedAt) ? current : latest,
+                    )
+
+                    return (
+                      <StyledTableRow key={monthYear}>
+                        <TableCell>
+                          <Chip
+                            label={`${getMonthName(Number.parseInt(month))} ${year}`}
+                            color={monthYear === `${selectedMonth}-${selectedYear}` ? "primary" : "default"}
+                            variant={monthYear === `${selectedMonth}-${selectedYear}` ? "filled" : "outlined"}
+                          />
+                        </TableCell>
+                        <TableCell>{[...new Set(data.map((d) => d.employee))].join(", ")}</TableCell>
+                        <TableCell>{new Date(latestExtraction.extractedAt).toLocaleDateString()}</TableCell>
+                        <TableCell>{data.length}</TableCell>
+                        <TableCell align="right">
+                          <Tooltip title="Delete all data for this month">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() =>
+                                setDeleteConfirmDialog({
+                                  open: true,
+                                  dataId: monthYear,
+                                })
+                              }
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </StyledTableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Box>
-        </Paper>
-      )}
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
+              No extracted data found. Upload a PDF to get started.
+            </Typography>
+          )}
+        </Box>
+      </Paper>
 
       {/* PDF Text Extractor Section */}
       <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}>
@@ -1254,9 +1455,17 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
                 </Button>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Typography variant="body2" color="text.secondary">
-                  {file ? `Selected file: ${file.name}` : "No file selected"}
-                </Typography>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={handleReset}
+                  disabled={loading}
+                  fullWidth
+                  sx={{ height: "56px", borderRadius: 2 }}
+                  startIcon={<RestartAltIcon />}
+                >
+                  Reset All Data
+                </Button>
               </Grid>
             </Grid>
           </Box>
@@ -1319,10 +1528,20 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
                       <Typography variant="h6">{pdfData.totalHours || "N/A"}</Typography>
                     </Paper>
                   </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={3}>
                     <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
                       <Typography variant="body2" color="text.secondary">
-                        Total Hours
+                        Total OT
+                      </Typography>
+                      <Typography variant="h6" color="primary.main" fontWeight="bold">
+                        {pdfData.totalOT || "N/A"}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Weekly Off
                       </Typography>
                       <Typography variant="h6">{pdfData.weeklyoff || "N/A"}</Typography>
                     </Paper>
@@ -1453,7 +1672,6 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
                     </TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                   
                         <Button
                           variant="contained"
                           color="primary"
@@ -1654,10 +1872,10 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
                           <Typography variant="h6">{attendanceData.totalOT || 0}</Typography>
                         </Paper>
                       </Grid>
-                       <Grid item xs={12} sm={6} md={3}>
+                      <Grid item xs={12} sm={6} md={3}>
                         <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
                           <Typography variant="body2" color="text.secondary">
-                           weeklyoff
+                            weeklyoff
                           </Typography>
                           <Typography variant="h6">{attendanceData.weeklyoff || 0}</Typography>
                         </Paper>
@@ -2119,6 +2337,56 @@ const workingDays = attendanceResponse.data?.totaldays || 30 // fallback to 30 i
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      <Dialog
+        open={duplicateDialog.open}
+        onClose={() => setDuplicateDialog({ open: false, existingData: null, newData: null })}
+      >
+        <DialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <WarningIcon color="warning" sx={{ mr: 1 }} />
+            Duplicate Data Detected
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Data for {getMonthName(selectedMonth)} {selectedYear} already exists. What would you like to do?
+          </Typography>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Existing data was extracted on:{" "}
+            {duplicateDialog.existingData?.extractedAt
+              ? new Date(duplicateDialog.existingData.extractedAt).toLocaleDateString()
+              : "Unknown"}
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleDuplicateChoice("keep")} color="inherit">
+            Keep Existing
+          </Button>
+          <Button onClick={() => handleDuplicateChoice("replace")} color="warning" variant="contained">
+            Replace with New Data
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteConfirmDialog.open} onClose={() => setDeleteConfirmDialog({ open: false, dataId: null })}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete this extracted data? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmDialog({ open: false, dataId: null })}>Cancel</Button>
+          <Button
+            onClick={() => handleDeleteExtractedData(deleteConfirmDialog.dataId)}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Snackbar for notifications */}
