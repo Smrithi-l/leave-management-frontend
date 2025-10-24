@@ -1,64 +1,57 @@
-"use client"
+// src/pages/Login.js
+"use client";
 
-import { useState } from "react"
+import React, { useState } from "react";
 import {
+  Box,
+  Card,
   TextField,
   Button,
-  Container,
   Typography,
-  Box,
   InputAdornment,
   IconButton,
+  Link,
+  Grid,
   FormControlLabel,
   Checkbox,
   CircularProgress,
-  Paper,
-} from "@mui/material"
-import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material"
-import { loginUser } from "../api/auth"
-import { useForm, Controller } from "react-hook-form"
+} from "@mui/material";
+import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useForm, Controller } from "react-hook-form";
+import { loginUser } from "../api/auth"; // your API login function
+import logo from "../assets/logo.jpg";
+import illustration from "../assets/illustration.png";
 
-const MotionContainer = motion(Container)
-const MotionPaper = motion(Paper)
-const MotionTypography = motion(Typography)
-const MotionButton = motion(Button)
-
-const Login = () => {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [rememberMe, setRememberMe] = useState(false)
-  const navigate = useNavigate()
+export default function Login() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
   const {
     control,
     handleSubmit,
-    formState: { errors },
   } = useForm({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  })
+    defaultValues: { email: "", password: "" },
+  });
 
   const onSubmit = async (data) => {
-    setIsLoading(true)
-    setError(null)
-
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await loginUser(data.email, data.password)
-      localStorage.setItem("token", response.token)
-      localStorage.setItem("role", response.role)
+      const response = await loginUser(data.email, data.password);
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("role", response.role);
 
       if (rememberMe) {
-        localStorage.setItem("rememberedEmail", data.email)
+        localStorage.setItem("rememberedEmail", data.email);
       } else {
-        localStorage.removeItem("rememberedEmail")
+        localStorage.removeItem("rememberedEmail");
       }
 
-      // Use framer motion's AnimatePresence for a smooth transition before redirect
       setTimeout(() => {
         window.location.href = response.role === "admin" ? "/admin-dashboard" : "/employee-dashboard"
       }, 500)
@@ -66,75 +59,123 @@ const Login = () => {
       setError("Invalid email or password. Please try again.")
       setIsLoading(false)
     }
-  }
-
-  const handleTogglePassword = () => {
-    setShowPassword(!showPassword)
-  }
+  };
 
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: "80vh",
+        height: "100vh",     
+        overflow: "hidden",  
         display: "flex",
-        justifyContent: "center",
         alignItems: "center",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        padding: 2,
+        justifyContent: "center",
+        px: 2,
+        position: "relative",
       }}
     >
-      <MotionContainer
-        maxWidth="xs"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <MotionPaper
-          elevation={10}
-          sx={{
-            p: 4,
-            borderRadius: 4,
-            overflow: "hidden",
-            position: "relative",
-          }}
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <MotionTypography
-            variant="h4"
-            fontWeight="bold"
-            color="primary"
-            gutterBottom
-            textAlign="center"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            Welcome Back
-          </MotionTypography>
+    
+      {/* Decorative background elements */}
+      <Box
+        component={motion.div}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.5 }}
+        transition={{ duration: 1, delay: 1 }}
+        sx={{
+          position: "absolute",
+          top: "10%",
+          left: "5%",
+          width: 150,
+          height: 150,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(41,182,246,0.2) 0%, rgba(2,136,209,0) 70%)",
+          zIndex: 0,
+        }}
+      />
+      <Box
+        component={motion.div}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.4 }}
+        transition={{ duration: 1, delay: 1.2 }}
+        sx={{
+          position: "absolute",
+          bottom: "15%",
+          right: "10%",
+          width: 200,
+          height: 200,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(1,87,155,0.2) 0%, rgba(2,136,209,0) 70%)",
+          zIndex: 0,
+        }}
+      />
 
-          <MotionTypography
-            color="textSecondary"
-            mb={3}
+      {/* Main Card */}
+      <Card
+        component={motion.div}
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          width: { xs: "100%", sm: "90%", md: "70%" },
+          maxWidth: 1000,
+          borderRadius: 4,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          overflow: "hidden",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {/* Left Section - Form */}
+        <Grid
+          item
+          xs={12}
+          md={6}
+          sx={{
+            p: { xs: 4, sm: 6 },
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
+          <Box textAlign="center" mb={2}>
+            <img src={logo} alt="Logo" width={170} />
+            <Typography variant="h5" fontWeight={700} mt={0} sx={{ fontSize: "30px" }}>
+              Welcome Back To ZenPay
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Manage your leaves, approvals, and salary efficiently.
+            </Typography>
+          </Box>
+
+          <Typography
+            variant="h6"
+            fontWeight={600}
             textAlign="center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            sx={{ color: "#2563eb", fontSize: "21px" }}
+            mb={-1}
           >
-            Login to your account
-          </MotionTypography>
+            Login
+          </Typography>
 
           {error && (
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <Typography
                 color="error"
                 sx={{
-                  mb: 2,
-                  p: 1,
+                  mb: 3,
+                  p: 1.5,
                   bgcolor: "rgba(255, 0, 0, 0.05)",
-                  borderRadius: 1,
+                  borderRadius: 2,
                   textAlign: "center",
+                  border: "1px solid rgba(255, 0, 0, 0.1)",
                 }}
               >
                 {error}
@@ -143,198 +184,155 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-            >
-              <Controller
-                name="email"
-                control={control}
-                rules={{
-                  required: "Email is required",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Invalid email address",
-                  },
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Email"
-                    margin="normal"
-                    variant="outlined"
-                    error={!!errors.email}
-                    helperText={errors.email?.message}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Email color="primary" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      bgcolor: "rgba(247, 247, 247, 0.5)",
-                      borderRadius: 1,
-                      "& .MuiOutlinedInput-root": {
-                        "&:hover fieldset": {
-                          borderColor: "primary.main",
-                        },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-            >
-              <Controller
-                name="password"
-                control={control}
-                rules={{
-                  required: "Password is required",
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Password"
-                    type={showPassword ? "text" : "password"}
-                    margin="normal"
-                    variant="outlined"
-                    error={!!errors.password}
-                    helperText={errors.password?.message}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Lock color="primary" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton aria-label="toggle password visibility" onClick={handleTogglePassword} edge="end">
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      bgcolor: "rgba(247, 247, 247, 0.5)",
-                      borderRadius: 1,
-                      "& .MuiOutlinedInput-root": {
-                        "&:hover fieldset": {
-                          borderColor: "primary.main",
-                        },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-            >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1, mb: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      color="primary"
-                      size="small"
-                    />
-                  }
-                  label={<Typography variant="body2">Remember me</Typography>}
-                />
-                <Typography
-                  variant="body2"
-                  color="primary"
-                  sx={{
-                    cursor: "pointer",
-                    fontWeight: "medium",
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
+            {/* Email */}
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Email"
+                  fullWidth
+                  margin="normal"
+                  variant="outlined"
+                  required
+                  type="email"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email color="primary" />
+                      </InputAdornment>
+                    ),
                   }}
-                  onClick={() => navigate("/forgot-password")}
-                >
-                  Forgot password?
-                </Typography>
-              </Box>
-            </motion.div>
+                />
+              )}
+            />
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
+            {/* Password */}
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Password"
+                  type={showPassword ? "text" : "password"}
+                  fullWidth
+                  margin="normal"
+                  variant="outlined"
+                  required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock color="primary" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+            />
+
+            {/* Remember Me */}
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mt={1}
+              mb={2}
             >
-              <MotionButton
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                disabled={isLoading}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                sx={{
-                  mt: 2,
-                  p: 1.5,
-                  fontSize: "1rem",
-                  fontWeight: "bold",
-                  borderRadius: 2,
-                  textTransform: "none",
-                  boxShadow: 3,
-                }}
-              >
-                {isLoading ? <CircularProgress size={24} color="inherit" /> : "Login"}
-              </MotionButton>
-            </motion.div>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    sx={{
+                      color: "#2563eb",
+                      "&.Mui-checked": { color: "#2563eb" },
+                    }}
+                  />
+                }
+                label={<Typography variant="body2">Remember me</Typography>}
+              />
+            </Box>
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={isLoading}
+              sx={{
+                mt: 2,
+                py: 1.5,
+                fontSize: "1rem",
+                textTransform: "none",
+                borderRadius: 2,
+                bgcolor: "#2563eb",
+                "&:hover": { bgcolor: "#1e40af" },
+              }}
+            >
+              {isLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Login"
+              )}
+            </Button>
           </form>
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.9 }}>
-            <Typography mt={3} fontSize="0.9rem" textAlign="center">
-              Don't have an account?{" "}
-              <motion.span
-                style={{
-                  color: "#667eea",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  display: "inline-block",
-                }}
-                whileHover={{ scale: 1.05 }}
-                onClick={() => navigate("/signup")}
-              >
-                Sign Up
-              </motion.span>
-            </Typography>
-          </motion.div>
-
           <Box
-            component={motion.div}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 1 }}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              mt: 3,
-              gap: 2,
-            }}
+            mt={3}
+            display="flex"
+            justifyContent="center"
+            gap={2}
+            sx={{ fontSize: "0.85rem" }}
           >
-         
+            <Link href="#" underline="hover">
+              Privacy Policy
+            </Link>
+            <Link href="#" underline="hover">
+              Terms and Conditions
+            </Link>
           </Box>
-        </MotionPaper>
-      </MotionContainer>
-    </Box>
-  )
-}
+        </Grid>
 
-export default Login
+        {/* Right Section - Illustration */}
+        <Grid
+          item
+          xs={12}
+          md={6}
+          sx={{
+            bgcolor: "#ffffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "Flex-start",
+            p: { xs: 1, sm: 0 },
+          }}
+        >
+          <Box
+            component="img"
+            src={illustration}
+            alt="Illustration"
+            sx={{
+              width: "100%",
+              maxWidth: 400,
+              height: "auto",
+              objectFit: "contain",
+              borderRadius: 2,
+              ml: -4,
+            }}
+          />
+        </Grid>
+      </Card>
+    </Box>
+  );
+}

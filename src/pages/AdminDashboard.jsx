@@ -2,73 +2,112 @@
 
 import { useState, useEffect, useCallback } from "react"
 import {
+  Container,
   Typography,
+  Button,
   Table,
   TableBody,
   TableCell,
+  LinearProgress,
   TableContainer,
   TableHead,
   TableRow,
   Paper,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  TextField,
-  MenuItem,
-  Select,
-  InputLabel,
-  FormControl,
-  FormControlLabel,
-  Checkbox,
-  Box,
+  Avatar,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Avatar,
+  TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Grid,
+  Card,
+  CardContent,
+  Box,
   Chip,
+  CircularProgress,
+  Tabs,
+  Tab,
   IconButton,
+  Tooltip,
+  Snackbar,
+  Alert,
+  FormHelperText,
   AppBar,
   Toolbar,
-  Drawer,
+  Divider,
+  useMediaQuery,
+  useTheme as useMuiTheme,
+  Stack,
+  Badge,
   List,
-  ListItem,
   ListItemIcon,
   ListItemText,
-  Divider,
-  InputAdornment,
-  Badge,
-  CircularProgress,
-  Tab,
-  Tabs,
-  useMediaQuery,
-  useTheme,
+  ListItemButton,
+  Fade,
+  Grow,
+  Zoom,
+  styled,
+  alpha,
+  Drawer,
+  CssBaseline,
+  SwipeableDrawer,
+  ThemeProvider,
+  createTheme,
   Menu,
+  ListItem,
+  InputAdornment,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material"
-import { styled, alpha } from "@mui/material/styles"
 import {
-  Dashboard as DashboardIcon,
-  Person as PersonIcon,
-  Event as EventIcon,
-  Assessment as AssessmentIcon,
-  ExitToApp as ExitToAppIcon,
-  Search as SearchIcon,
-  Add as AddIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  Notifications as NotificationsIcon,
-  FilterList as FilterListIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  Today as TodayIcon,
-  History as HistoryIcon,
-  AttachMoney as AttachMoneyIcon,
+  Dashboard,
+  Person,
+  Event,
+  Assessment,
+  ExitToApp,
+  Search,
+  Add,
+  Check,
+  Close,
+  Notifications,
+  FilterList,
+  ChevronLeft,
+  ChevronRight,
+  Today,
+  History,
+  AttachMoney,
   Menu as MenuIcon,
-  MoreVert as MoreVertIcon,
-  Edit as EditIcon,
+  MoreVert,
+  Edit,
+  Brightness4,
+  Brightness7,
+  Refresh,
+  CheckCircleOutline,
+  CancelOutlined,
+  HourglassEmpty,
+  Group,
+  CalendarMonth,
+  DateRange,
+  Download,
+  SupervisorAccount,
+  Settings,
+  Help,
+  Logout,
+  BarChart,
+  PieChart,
+  Info,
+  Delete,
+  Spa,
+  Healing,
+  Home,
+  AccessTime,
 } from "@mui/icons-material"
 import axios from "axios"
+import { format, differenceInDays } from "date-fns"
 
 import { LeaveHistoryChart } from "../components/leave-history-chart"
 import { EmployeeLeaveDistribution } from "../components/employee-leave-distribution"
@@ -78,186 +117,524 @@ import { EmployeeLeaveComparison } from "../components/employee-leave-comparsion
 import { EmployeeSection } from "../components/employee-section"
 import GenerateSalary from "../components/generate-salary"
 
-const StyledTableCell = styled(TableCell)(({ theme }) => ({
-  fontWeight: "bold",
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.common.white,
-  [theme.breakpoints.down("sm")]: {
-    padding: "8px 6px",
-    fontSize: "0.75rem",
-  },
-}))
-
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  "&:nth-of-type(odd)": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.05),
-  },
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.1),
-    cursor: "pointer",
-    transition: "background-color 0.2s ease",
-  },
-}))
-
-const StatusChip = styled(Chip)(({ theme, status }) => {
-  let color = theme.palette.info.main
-  let bgColor = alpha(theme.palette.info.light, 0.2)
-
-  if (status === "Approved") {
-    color = theme.palette.success.main
-    bgColor = alpha(theme.palette.success.light, 0.2)
-  } else if (status === "Rejected") {
-    color = theme.palette.error.main
-    bgColor = alpha(theme.palette.error.light, 0.2)
-  } else if (status === "Pending") {
-    color = theme.palette.warning.main
-    bgColor = alpha(theme.palette.warning.light, 0.2)
-  }
-
-  return {
-    backgroundColor: bgColor,
-    color: color,
-    fontWeight: "medium",
-    "& .MuiChip-label": {
-      padding: "0 12px",
-      [theme.breakpoints.down("sm")]: {
-        padding: "0 4px",
-        fontSize: "0.625rem",
+// <CHANGE> Added theme configuration matching employee dashboard
+const getTheme = (mode) =>
+  createTheme({
+    palette: {
+      mode,
+      primary: {
+        main: "#2563eb",
+        light: "#2563eb",
+        dark: "rgba(101, 41, 198, 1)",
+        contrastText: "#ffffff",
+      },
+      secondary: {
+        main: "#ec4899",
+        light: "#f472b6",
+        dark: "#db2777",
+        contrastText: "#ffffff",
+      },
+      success: {
+        main: "#10b981",
+        light: "#34d399",
+        dark: "#059669",
+      },
+      warning: {
+        main: "#f59e0b",
+        light: "#fbbf24",
+        dark: "#d97706",
+      },
+      error: {
+        main: "#ef4444",
+        light: "#f87171",
+        dark: "#dc2626",
+      },
+      info: {
+        main: "#06b6d4",
+        light: "#22d3ee",
+        dark: "#0891b2",
+      },
+      background: {
+        default: mode === "light" ? "#f8fafc" : "#0f172a",
+        paper: mode === "light" ? "#ffffff" : "#1e293b",
+      },
+      text: {
+        primary: mode === "light" ? "#1e293b" : "#f1f5f9",
+        secondary: mode === "light" ? "#64748b" : "#94a3b8",
+      },
+      grey: {
+        50: "#f8fafc",
+        100: "#f1f5f9",
+        200: "#e2e8f0",
+        300: "#cbd5e1",
+        400: "#94a3b8",
+        500: "#64748b",
+        600: "#475569",
+        700: "#334155",
+        800: "#1e293b",
+        900: "#0f172a",
       },
     },
-    border: `1px solid ${alpha(color, 0.3)}`,
-    [theme.breakpoints.down("sm")]: {
-      height: "24px",
+    typography: {
+      fontFamily: '"Plus Jakarta Sans", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+      h1: {
+        fontWeight: 800,
+        letterSpacing: "-0.025em",
+      },
+      h2: {
+        fontWeight: 700,
+        letterSpacing: "-0.025em",
+      },
+      h3: {
+        fontWeight: 700,
+        letterSpacing: "-0.025em",
+      },
+      h4: {
+        fontWeight: 600,
+        letterSpacing: "-0.025em",
+      },
+      h5: {
+        fontWeight: 600,
+      },
+      h6: {
+        fontWeight: 600,
+      },
+      button: {
+        textTransform: "none",
+        fontWeight: 600,
+      },
+      subtitle1: {
+        fontWeight: 500,
+      },
+      subtitle2: {
+        fontWeight: 500,
+      },
     },
-  }
-})
+    shape: {
+      borderRadius: 12,
+    },
+    shadows: [
+      "none",
+      "0px 1px 2px rgba(15, 23, 42, 0.1)",
+      "0px 2px 4px rgba(15, 23, 42, 0.08)",
+      "0px 4px 8px rgba(15, 23, 42, 0.08)",
+      "0px 8px 16px rgba(15, 23, 42, 0.08)",
+      "0px 16px 24px rgba(15, 23, 42, 0.08)",
+      "0px 20px 32px rgba(15, 23, 42, 0.08)",
+      ...Array(18).fill("none"),
+    ],
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 10,
+            boxShadow: "none",
+            padding: "10px 20px",
+            "&:hover": {
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+              transform: "translateY(-1px)",
+            },
+            transition: "all 0.2s ease",
+          },
+          contained: {
+            "&.MuiButton-containedPrimary": {
+              background: "linear-gradient(135deg, #2563eb, rgba(159, 123, 244, 1))",
+            },
+            "&.MuiButton-containedSecondary": {
+              background: "linear-gradient(135deg, #ec4899, #f472b6)",
+            },
+          },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            borderRadius: 16,
+            boxShadow: mode === "light" ? "0 4px 20px rgba(15, 23, 42, 0.06)" : "0 4px 20px rgba(0, 0, 0, 0.3)",
+            overflow: "hidden",
+            border: `1px solid ${mode === "light" ? "rgba(226, 232, 240, 0.8)" : "rgba(71, 85, 105, 0.3)"}`,
+            transition: "transform 0.3s ease, box-shadow 0.3s ease",
+            "&:hover": {
+              boxShadow: mode === "light" ? "0 10px 30px rgba(15, 23, 42, 0.1)" : "0 10px 30px rgba(0, 0, 0, 0.5)",
+            },
+          },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            padding: "16px",
+            borderColor: mode === "light" ? "rgba(226, 232, 240, 0.8)" : "rgba(71, 85, 105, 0.3)",
+          },
+          head: {
+            fontWeight: 600,
+            backgroundColor: mode === "light" ? "#f8fafc" : "#1e293b",
+            color: mode === "light" ? "#334155" : "#cbd5e1",
+          },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: {
+            fontWeight: 500,
+            borderRadius: 8,
+          },
+          filled: {
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+          },
+        },
+      },
+      MuiAvatar: {
+        styleOverrides: {
+          root: {
+            fontWeight: 600,
+          },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 10,
+            margin: "4px 8px",
+            padding: "10px 16px",
+            "&.Mui-selected": {
+              backgroundColor: "rgba(109, 40, 217, 0.08)",
+              "&:hover": {
+                backgroundColor: "rgba(109, 40, 217, 0.12)",
+              },
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                left: 0,
+                top: "20%",
+                height: "60%",
+                width: 4,
+                backgroundColor: "#2563eb",
+                borderRadius: "0 4px 4px 0",
+              },
+            },
+          },
+        },
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            borderRight: "none",
+            boxShadow: "4px 0 24px rgba(15, 23, 42, 0.08)",
+          },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            boxShadow: "0 2px 10px rgba(15, 23, 42, 0.05)",
+          },
+        },
+      },
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 10,
+            },
+          },
+        },
+      },
+      MuiSelect: {
+        styleOverrides: {
+          outlined: {
+            borderRadius: 10,
+          },
+        },
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            fontSize: "1.25rem",
+            fontWeight: 600,
+          },
+        },
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            textTransform: "none",
+            fontWeight: 600,
+            minHeight: 48,
+          },
+        },
+      },
+      MuiLinearProgress: {
+        styleOverrides: {
+          root: {
+            borderRadius: 10,
+            height: 8,
+          },
+        },
+      },
+      MuiDivider: {
+        styleOverrides: {
+          root: {
+            borderColor: mode === "light" ? "rgba(226, 232, 240, 0.8)" : "rgba(71, 85, 105, 0.3)",
+          },
+        },
+      },
+    },
+  })
 
-const SummaryCard = styled(Card)(({ theme, cardcolor }) => ({
-  height: "100%",
+// <CHANGE> Added styled components matching employee dashboard
+const DRAWER_WIDTH = 260
+
+const StyledAppBar = styled(AppBar)(({ theme }) => ({
+  background: theme.palette.background.paper,
+  color: theme.palette.text.primary,
+  boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
+  zIndex: theme.zIndex.drawer + 1,
+}))
+
+const Main = styled("main", {
+  shouldForwardProp: (prop) => prop !== "open",
+})(({ theme, open }) => ({
+  flexGrow: 1,
+  padding: theme.spacing(2),
+  transition: theme.transitions.create("margin", {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  marginLeft: 0,
+  ...(open && {
+    transition: theme.transitions.create("margin", {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  }),
+}))
+
+const GlassCard = styled(Card)(({ theme }) => ({
+  background: alpha(theme.palette.background.paper, 0.9),
+  backdropFilter: "blur(10px)",
+  borderRadius: 20,
+  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.08)",
+  transition: "all 0.3s ease",
+  overflow: "hidden",
+  "&:hover": {
+    transform: "translateY(-5px)",
+    boxShadow: "0 15px 30px 0 rgba(31, 38, 135, 0.12)",
+  },
+}))
+
+const StyledBadge = styled(Badge)(({ theme }) => ({
+  "& .MuiBadge-badge": {
+    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+    padding: "0 4px",
+  },
+}))
+
+const AnimatedIconButton = styled(IconButton)(({ theme }) => ({
+  transition: "all 0.2s ease",
+  "&:hover": {
+    transform: "scale(1.1)",
+    backgroundColor: alpha(theme.palette.primary.main, 0.1),
+  },
+}))
+
+const StatusChip = styled(Chip)(({ theme, color }) => ({
+  borderRadius: 10,
+  fontWeight: 600,
+  boxShadow: "0 2px 5px 0 rgba(0,0,0,0.05)",
+  "& .MuiChip-icon": {
+    fontSize: 16,
+  },
+}))
+
+const GradientButton = styled(Button)(({ theme, color = "primary" }) => ({
+  borderRadius: 10,
+  padding: "10px 20px",
+  fontWeight: 600,
+  textTransform: "none",
+  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+  color: "white",
+  "&:hover": {
+    boxShadow: "0 6px 15px 0 rgba(0,0,0,0.15)",
+    transform: "translateY(-2px)",
+  },
+}))
+
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  borderRadius: 16,
+  overflow: "hidden",
+  boxShadow: "0 5px 15px rgba(0, 0, 0, 0.05)",
+  "& .MuiTableHead-root": {
+    backgroundColor: alpha(theme.palette.grey[100], 0.8),
+  },
+  "& .MuiTableCell-head": {
+    color: theme.palette.grey[700],
+    fontWeight: 600,
+    padding: "16px",
+  },
+  "& .MuiTableRow-root:nth-of-type(even)": {
+    backgroundColor: alpha(theme.palette.grey[50], 0.5),
+  },
+  "& .MuiTableRow-root:hover": {
+    backgroundColor: alpha(theme.palette.primary.light, 0.05),
+  },
+}))
+
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+  border: `2px solid ${theme.palette.background.paper}`,
+}))
+
+const StyledDrawer = styled(Drawer)(({ theme }) => ({
+  width: DRAWER_WIDTH,
+  flexShrink: 0,
+  "& .MuiDrawer-paper": {
+    width: DRAWER_WIDTH,
+    boxSizing: "border-box",
+    backgroundImage: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)}, ${alpha(theme.palette.background.paper, 0.95)})`,
+    backdropFilter: "blur(10px)",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
+    border: "none",
+  },
+}))
+
+const DrawerHeader = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: theme.spacing(3, 2),
+  ...theme.mixins.toolbar,
+}))
+
+const StatCard = styled(Card)(({ theme, accentColor }) => ({
+  borderRadius: 20,
+  overflow: "hidden",
+  position: "relative",
+  boxShadow: "0 10px 20px rgba(0, 0, 0, 0.05)",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+    background: accentColor || theme.palette.primary.main,
+  },
   transition: "transform 0.3s ease, box-shadow 0.3s ease",
   "&:hover": {
     transform: "translateY(-5px)",
-    boxShadow: theme.shadows[8],
-  },
-  borderTop: `3px solid ${cardcolor}`,
-}))
-
-const CalendarDay = styled(Box)(({ theme, isWeekend, isToday, hasLeave }) => ({
-  width: "100%",
-  aspectRatio: "1",
-  border: "1px solid",
-  borderColor: isToday ? theme.palette.primary.main : alpha(theme.palette.divider, 0.8),
-  borderRadius: "4px",
-  padding: "4px",
-  backgroundColor: isWeekend ? alpha(theme.palette.action.hover, 0.5) : "white",
-  position: "relative",
-  cursor: "pointer",
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.light, 0.1),
-  },
-  ...(isToday && {
-    boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}`,
-  }),
-  ...(hasLeave && {
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      top: "0",
-      right: "0",
-      width: "0",
-      height: "0",
-      borderStyle: "solid",
-      borderWidth: "0 12px 12px 0",
-      borderColor: `transparent ${theme.palette.primary.main} transparent transparent`,
-    },
-  }),
-  [theme.breakpoints.down("sm")]: {
-    padding: "2px",
+    boxShadow: "0 15px 30px rgba(0, 0, 0, 0.1)",
   },
 }))
 
-const LeaveIndicator = styled(Box)(({ theme, status }) => {
-  let bgColor = theme.palette.primary.main
+const CircularProgressWithLabel = ({ value, color, label, total }) => {
+  const normalizedValue = Math.min((value / total) * 100, 100)
 
-  if (status === "Approved") {
-    bgColor = theme.palette.success.main
-  } else if (status === "Rejected") {
-    bgColor = theme.palette.error.main
-  } else if (status === "Pending") {
-    bgColor = theme.palette.warning.main
+  return (
+    <Box sx={{ position: "relative", display: "inline-flex" }}>
+      <CircularProgress
+        variant="determinate"
+        value={100}
+        size={80}
+        thickness={4}
+        sx={{
+          color: (theme) => alpha(theme.palette.grey[300], 0.3),
+          position: "absolute",
+        }}
+      />
+      <CircularProgress
+        variant="determinate"
+        value={normalizedValue}
+        size={80}
+        thickness={4}
+        sx={{
+          color: color,
+          "& .MuiCircularProgress-circle": {
+            strokeLinecap: "round",
+          },
+        }}
+      />
+      <Box
+        sx={{
+          top: 0,
+          left: 0,
+          bottom: 0,
+          right: 0,
+          position: "absolute",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <Typography variant="h6" component="div" fontWeight="bold">
+          {value || 0}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {label}
+        </Typography>
+      </Box>
+    </Box>
+  )
+}
+
+const LeaveTypeIcon = ({ type, ...props }) => {
+  switch (type?.toLowerCase()) {
+    case "casual":
+    case "casualleave":
+      return <Spa {...props} />
+    case "sick":
+    case "sickleave":
+      return <Healing {...props} />
+    case "medical":
+    case "medicalleave":
+      return <LocalHospital {...props} />
+    case "work from home":
+    case "workfromhome":
+      return <Home {...props} />
+    default:
+      return <AccessTime {...props} />
   }
+}
 
-  return {
-    height: "18px",
-    borderRadius: "4px",
-    fontSize: "10px",
-    padding: "2px 4px",
-    marginBottom: "2px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    backgroundColor: alpha(bgColor, 0.2),
-    color: bgColor,
-    display: "flex",
-    alignItems: "center",
-    [theme.breakpoints.down("sm")]: {
-      height: "14px",
-      fontSize: "8px",
-      padding: "1px 2px",
-    },
-  }
-})
-
-const drawerWidth = 240
-
-const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" && prop !== "isMobile" })(
-  ({ theme, open, isMobile }) => ({
-    flexGrow: 1,
-    padding: theme.spacing(3),
-    transition: theme.transitions.create("margin", {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    marginLeft: 0,
-    ...(open &&
-      !isMobile && {
-        transition: theme.transitions.create("margin", {
-          easing: theme.transitions.easing.easeOut,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-        marginLeft: drawerWidth,
-      }),
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(2),
-    },
-  }),
-)
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  borderRadius: "8px 8px 0 0",
-  minHeight: "48px",
-  fontWeight: "medium",
-  "&.Mui-selected": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    color: theme.palette.primary.main,
-  },
-  [theme.breakpoints.down("sm")]: {
-    minHeight: "40px",
-    fontSize: "0.75rem",
-    padding: "6px 8px",
-  },
-}))
-
-const ResponsiveTableContainer = styled(TableContainer)(({ theme }) => ({
-  [theme.breakpoints.down("md")]: {
-    overflowX: "auto",
-  },
-}))
+const LocalHospital = (props) => {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path
+        d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM18 14H14V18H10V14H6V10H10V6H14V10H18V14Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
 
 const AdminDashboard = () => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"))
-  const isSmall = useMediaQuery(theme.breakpoints.down("sm"))
+  const muiTheme = useMuiTheme()
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"))
+  const isTablet = useMediaQuery(muiTheme.breakpoints.down("md"))
+
+  // <CHANGE> Added dark mode state management
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode")
+    return saved ? JSON.parse(saved) : false
+  })
+
+  const theme = getTheme(darkMode ? "dark" : "light")
+
+  const [drawerOpen, setDrawerOpen] = useState(!isMobile)
+  const [activeView, setActiveView] = useState("dashboard")
+  const [notificationAnchor, setNotificationAnchor] = useState(null)
+
+  // <CHANGE> Added snackbar state for notifications
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  })
+
+  // ... existing code ...
 
   const [leaveRequests, setLeaveRequests] = useState([])
   const [filteredRequests, setFilteredRequests] = useState([])
@@ -266,7 +643,6 @@ const AdminDashboard = () => {
   const [filterStatus, setFilterStatus] = useState("All")
   const [open, setOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(!isMobile)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(0)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -295,7 +671,6 @@ const AdminDashboard = () => {
     salary: 0,
   })
   const [employeeToEdit, setEmployeeToEdit] = useState(null)
-
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [leaveHistory, setLeaveHistory] = useState([])
   const [historyTab, setHistoryTab] = useState(0)
@@ -313,7 +688,11 @@ const AdminDashboard = () => {
   })
   const [employees, setEmployees] = useState([])
 
-  // Effect to handle drawer state based on screen size
+  // <CHANGE> Save dark mode preference
+  useEffect(() => {
+    localStorage.setItem("darkMode", JSON.stringify(darkMode))
+  }, [darkMode])
+
   useEffect(() => {
     setDrawerOpen(!isMobile)
   }, [isMobile])
@@ -363,13 +742,9 @@ const AdminDashboard = () => {
   const fetchOverallStats = async () => {
     try {
       const token = localStorage.getItem("token")
-     
-      const response = await axios.get(
-        "http://localhost:5000/api/dashboard/overall-stats",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      )
+      const response = await axios.get("http://localhost:5000/api/dashboard/overall-stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       setOverallStats(response.data)
     } catch (error) {
       console.error("Error fetching overall stats:", error)
@@ -389,7 +764,12 @@ const AdminDashboard = () => {
       setLeaveHistory(response.data)
     } catch (error) {
       console.error("Error fetching leave history:", error)
-      alert("Failed to fetch leave history.")
+      // <CHANGE> Using snackbar instead of alert
+      setSnackbar({
+        open: true,
+        message: "Failed to fetch leave history.",
+        severity: "error",
+      })
     }
   }
 
@@ -417,11 +797,20 @@ const AdminDashboard = () => {
         { headers: { Authorization: `Bearer ${token}` } },
       )
       fetchLeaveRequests()
-      alert(`Leave request ${status.toLowerCase()} successfully!`)
+      // <CHANGE> Using snackbar instead of alert
+      setSnackbar({
+        open: true,
+        message: `Leave request ${status.toLowerCase()} successfully!`,
+        severity: "success",
+      })
       setLeaveComment("")
     } catch (error) {
       console.error("Error updating leave request:", error)
-      alert("Failed to update leave request.")
+      setSnackbar({
+        open: true,
+        message: "Failed to update leave request.",
+        severity: "error",
+      })
     }
   }
 
@@ -498,10 +887,19 @@ const AdminDashboard = () => {
         Workfromhome: 0,
         salary: 0,
       })
-      alert("Employee added successfully!")
+      // <CHANGE> Using snackbar instead of alert
+      setSnackbar({
+        open: true,
+        message: "Employee added successfully!",
+        severity: "success",
+      })
     } catch (error) {
       console.error("Error adding employee:", error)
-      alert(error.response?.data?.message || "Failed to add employee.")
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to add employee.",
+        severity: "error",
+      })
     }
   }
 
@@ -536,10 +934,19 @@ const AdminDashboard = () => {
       fetchUsers()
       setEditDialogOpen(false)
       setEmployeeToEdit(null)
-      alert("Employee updated successfully!")
+      // <CHANGE> Using snackbar instead of alert
+      setSnackbar({
+        open: true,
+        message: "Employee updated successfully!",
+        severity: "success",
+      })
     } catch (error) {
       console.error("Error updating employee:", error)
-      alert(error.response?.data?.message || "Failed to update employee.")
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to update employee.",
+        severity: "error",
+      })
     }
   }
 
@@ -624,9 +1031,9 @@ const AdminDashboard = () => {
   const formatDate = (date) => {
     if (!date) return ""
     return date.toLocaleDateString("en-US", {
-      weekday: isSmall ? "short" : "long",
+      weekday: isMobile ? "short" : "long",
       year: "numeric",
-      month: isSmall ? "short" : "long",
+      month: isMobile ? "short" : "long",
       day: "numeric",
     })
   }
@@ -660,1146 +1067,1327 @@ const AdminDashboard = () => {
     setSelectedActionUser(null)
   }
 
-  const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen)
+  // <CHANGE> Added status chip renderer matching employee dashboard
+  const getStatusChip = (status) => {
+    switch (status) {
+      case "Approved":
+        return (
+          <StatusChip icon={<CheckCircleOutline />} label="Approved" color="success" size="small" variant="filled" />
+        )
+      case "Rejected":
+        return <StatusChip icon={<CancelOutlined />} label="Rejected" color="error" size="small" variant="filled" />
+      case "Pending":
+        return <StatusChip icon={<HourglassEmpty />} label="Pending" color="warning" size="small" variant="filled" />
+      default:
+        return <StatusChip label={status} size="small" />
+    }
   }
 
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false })
+  }
+
+  // <CHANGE> Added sidebar content with modern styling
+  const sidebarContent = (
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <DrawerHeader>
+      </DrawerHeader>
+
+      <Divider sx={{ my: 2 }} />
+
+      <List sx={{ flexGrow: 1, px: 1 }}>
+        <ListItemButton
+          selected={activeView === "dashboard"}
+          onClick={() => {
+            setActiveView("dashboard")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <Dashboard color={activeView === "dashboard" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItemButton>
+
+        <ListItemButton
+          selected={activeView === "leaveRequests"}
+          onClick={() => {
+            setActiveView("leaveRequests")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <Event color={activeView === "leaveRequests" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Leave Requests" />
+          {pending > 0 && (
+            <Chip label={pending} size="small" color="warning" sx={{ height: 20, fontSize: "0.75rem" }} />
+          )}
+        </ListItemButton>
+
+        <ListItemButton
+          selected={activeView === "employees"}
+          onClick={() => {
+            setActiveView("employees")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <Person color={activeView === "employees" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Employees" />
+        </ListItemButton>
+
+        <ListItemButton
+          selected={activeView === "analytics"}
+          onClick={() => {
+            setActiveView("analytics")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <Assessment color={activeView === "analytics" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Analytics" />
+        </ListItemButton>
+
+        <ListItemButton
+          selected={activeView === "calendar"}
+          onClick={() => {
+            setActiveView("calendar")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <CalendarMonth color={activeView === "calendar" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Calendar" />
+        </ListItemButton>
+
+        <ListItemButton
+          selected={activeView === "salary"}
+          onClick={() => {
+            setActiveView("salary")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <AttachMoney color={activeView === "salary" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Salary" />
+        </ListItemButton>
+      </List>
+
+      <Divider sx={{ my: 2 }} />
+
+      <List>
+        <ListItemButton
+          selected={activeView === "settings"}
+          onClick={() => {
+            setActiveView("settings")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <Settings color={activeView === "settings" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Settings" />
+        </ListItemButton>
+
+        <ListItemButton
+          selected={activeView === "help"}
+          onClick={() => {
+            setActiveView("help")
+            if (isMobile) setDrawerOpen(false)
+          }}
+        >
+          <ListItemIcon>
+            <Help color={activeView === "help" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="Help & Support" />
+        </ListItemButton>
+
+        <ListItemButton>
+          <ListItemIcon>
+            <Logout color="error" />
+          </ListItemIcon>
+          <ListItemText primary="Logout" primaryTypographyProps={{ color: "error" }} />
+        </ListItemButton>
+      </List>
+    </Box>
+  )
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f5f7fa" }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-          bgcolor: "white",
-          color: "text.primary",
-        }}
-      >
-        <Toolbar>
-          {isMobile && (
-            <IconButton edge="start" color="inherit" aria-label="menu" onClick={toggleDrawer} sx={{ mr: 1 }}>
+    <ThemeProvider theme={theme}>
+      <Box sx={{ display: "flex" }}>
+        <CssBaseline />
+
+        {/* <CHANGE> Modern AppBar with dark mode toggle */}
+        <StyledAppBar position="fixed">
+          <Toolbar>
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              sx={{ mr: 2, ...(drawerOpen && !isMobile && { display: "none" }) }}
+              onClick={() => setDrawerOpen(!drawerOpen)}
+            >
               <MenuIcon />
             </IconButton>
-          )}
 
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              flexGrow: 0,
-              fontWeight: "bold",
-              color: "primary.main",
-              display: "flex",
-              alignItems: "center",
-              fontSize: isSmall ? "1rem" : "1.25rem",
-            }}
-          >
-            <DashboardIcon sx={{ mr: 1, fontSize: isSmall ? "1.25rem" : "1.5rem" }} />
-            {!isSmall && "LeaveManagement"}
-          </Typography>
+            <SupervisorAccount sx={{ mr: 2, display: { xs: "none", sm: "block" }, color: "primary.main" }} />
 
-          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
-            {!isSmall && (
-              <TextField
-                placeholder="Search employees..."
-                size="small"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                sx={{
-                  width: isMobile ? "60%" : "40%",
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "20px",
-                    bgcolor: alpha("#f5f5f5", 0.8),
-                    "&:hover": {
-                      bgcolor: alpha("#f5f5f5", 1),
-                    },
-                  },
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{ fontSize: { xs: "1rem", sm: "1.25rem" }, fontWeight: 600 }}
+              >
+                {activeView === "dashboard"
+                  ? "Admin Dashboard"
+                  : activeView === "leaveRequests"
+                    ? "Leave Requests"
+                    : activeView === "employees"
+                      ? "Employee Management"
+                      : activeView === "analytics"
+                        ? "Analytics & Reports"
+                        : activeView === "calendar"
+                          ? "Leave Calendar"
+                          : activeView === "salary"
+                            ? "Salary Management"
+                            : activeView === "settings"
+                              ? "Settings"
+                              : activeView === "help"
+                                ? "Help & Support"
+                                : "Dashboard"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
+                Manage your organization efficiently
+              </Typography>
+            </Box>
+
+            <Tooltip title={darkMode ? "Light Mode" : "Dark Mode"}>
+              <AnimatedIconButton color="primary" onClick={() => setDarkMode(!darkMode)} sx={{ mr: 1 }}>
+                {darkMode ? <Brightness7 /> : <Brightness4 />}
+              </AnimatedIconButton>
+            </Tooltip>
+
+            <StyledBadge badgeContent={pending} color="error" sx={{ mr: 2 }}>
+              <AnimatedIconButton color="primary" onClick={(e) => setNotificationAnchor(e.currentTarget)}>
+                <Notifications />
+              </AnimatedIconButton>
+            </StyledBadge>
+
+            <Tooltip title="Admin">
+              <StyledAvatar sx={{ bgcolor: theme.palette.primary.main, cursor: "pointer" }}>A</StyledAvatar>
+            </Tooltip>
+          </Toolbar>
+        </StyledAppBar>
+
+        {/* <CHANGE> Notification menu */}
+        <Menu
+          anchorEl={notificationAnchor}
+          open={Boolean(notificationAnchor)}
+          onClose={() => setNotificationAnchor(null)}
+          PaperProps={{
+            sx: {
+              width: 350,
+              maxHeight: 400,
+              borderRadius: 3,
+              mt: 1,
+            },
+          }}
+        >
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
+            <Typography variant="h6" fontWeight="bold">
+              Notifications
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              You have {pending} pending leave request{pending !== 1 ? "s" : ""}
+            </Typography>
+          </Box>
+          <List sx={{ p: 0 }}>
+            {leaveRequests
+              .filter((leave) => leave.status === "Pending")
+              .slice(0, 5)
+              .map((leave, index) => (
+                <ListItem key={leave._id || index} divider>
+                  <ListItemIcon>
+                    <HourglassEmpty color="warning" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={`${leave.userId} - ${leave.type}`}
+                    secondary={`${new Date(leave.startDate).toLocaleDateString()} - ${new Date(leave.endDate).toLocaleDateString()}`}
+                  />
+                </ListItem>
+              ))}
+            {pending === 0 && (
+              <ListItem>
+                <ListItemText
+                  primary="No pending notifications"
+                  secondary="All caught up!"
+                  sx={{ textAlign: "center" }}
+                />
+              </ListItem>
             )}
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton size={isSmall ? "medium" : "large"} color="primary">
-              <Badge badgeContent={pending} color="error">
-                <NotificationsIcon fontSize={isSmall ? "small" : "medium"} />
-              </Badge>
-            </IconButton>
-            <Box sx={{ display: "flex", alignItems: "center", ml: isSmall ? 1 : 2 }}>
-              <Avatar sx={{ bgcolor: "primary.main", width: isSmall ? 28 : 36, height: isSmall ? 28 : 36 }}>A</Avatar>
-              {!isSmall && (
-                <Typography variant="subtitle2" sx={{ ml: 1, fontWeight: "medium" }}>
-                  Admin
-                </Typography>
-              )}
-            </Box>
-          </Box>
-        </Toolbar>
-
-        {isSmall && (
-          <Box sx={{ px: 2, pb: 1 }}>
-            <TextField
-              placeholder="Search employees..."
-              size="small"
-              fullWidth
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "20px",
-                  bgcolor: alpha("#f5f5f5", 0.8),
-                  "&:hover": {
-                    bgcolor: alpha("#f5f5f5", 1),
-                  },
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-        )}
-      </AppBar>
-
-      {/* Sidebar */}
-      <Drawer
-        variant={isMobile ? "temporary" : "persistent"}
-        anchor="left"
-        open={drawerOpen}
-        onClose={() => isMobile && setDrawerOpen(false)}
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-            boxSizing: "border-box",
-            bgcolor: "white",
-            borderRight: "1px solid rgba(0,0,0,0.08)",
-            boxShadow: "2px 0 10px rgba(0,0,0,0.03)",
-          },
-        }}
-      >
-        <Toolbar />
-        <Box sx={{ overflow: "auto", mt: 2 }}>
-          <List>
-            <ListItem
-              button
-              selected={activeTab === 0}
-              onClick={() => handleTabChange(0)}
-              sx={{
-                borderRadius: "0 20px 20px 0",
-                mr: 2,
-                bgcolor: activeTab === 0 ? alpha("#3f51b5", 0.08) : "transparent",
-                "&.Mui-selected": {
-                  bgcolor: alpha("#3f51b5", 0.12),
-                },
-              }}
-            >
-              <ListItemIcon>
-                <DashboardIcon color={activeTab === 0 ? "primary" : "inherit"} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Dashboard"
-                primaryTypographyProps={{
-                  fontWeight: activeTab === 0 ? "medium" : "normal",
-                  color: activeTab === 0 ? "primary.main" : "inherit",
-                }}
-              />
-            </ListItem>
-            <ListItem
-              button
-              selected={activeTab === 1}
-              onClick={() => handleTabChange(1)}
-              sx={{
-                borderRadius: "0 20px 20px 0",
-                mr: 2,
-                bgcolor: activeTab === 1 ? alpha("#3f51b5", 0.08) : "transparent",
-                "&.Mui-selected": {
-                  bgcolor: alpha("#3f51b5", 0.12),
-                },
-              }}
-            >
-              <ListItemIcon>
-                <EventIcon color={activeTab === 1 ? "primary" : "inherit"} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Leave Calendar"
-                primaryTypographyProps={{
-                  fontWeight: activeTab === 1 ? "medium" : "normal",
-                  color: activeTab === 1 ? "primary.main" : "inherit",
-                }}
-              />
-            </ListItem>
-            <ListItem
-              button
-              selected={activeTab === 2}
-              onClick={() => handleTabChange(2)}
-              sx={{
-                borderRadius: "0 20px 20px 0",
-                mr: 2,
-                bgcolor: activeTab === 2 ? alpha("#3f51b5", 0.08) : "transparent",
-                "&.Mui-selected": {
-                  bgcolor: alpha("#3f51b5", 0.12),
-                },
-              }}
-            >
-              <ListItemIcon>
-                <PersonIcon color={activeTab === 2 ? "primary" : "inherit"} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Employees"
-                primaryTypographyProps={{
-                  fontWeight: activeTab === 2 ? "medium" : "normal",
-                  color: activeTab === 2 ? "primary.main" : "inherit",
-                }}
-              />
-            </ListItem>
-            <ListItem
-              button
-              selected={activeTab === 3}
-              onClick={() => handleTabChange(3)}
-              sx={{
-                borderRadius: "0 20px 20px 0",
-                mr: 2,
-                bgcolor: activeTab === 3 ? alpha("#3f51b5", 0.08) : "transparent",
-                "&.Mui-selected": {
-                  bgcolor: alpha("#3f51b5", 0.12),
-                },
-              }}
-            >
-              <ListItemIcon>
-                <HistoryIcon color={activeTab === 3 ? "primary" : "inherit"} />
-              </ListItemIcon>
-              <ListItemText
-                primary="View History"
-                primaryTypographyProps={{
-                  fontWeight: activeTab === 3 ? "medium" : "normal",
-                  color: activeTab === 3 ? "primary.main" : "inherit",
-                }}
-              />
-            </ListItem>
-            <ListItem
-              button
-              selected={activeTab === 4}
-              onClick={() => handleTabChange(4)}
-              sx={{
-                borderRadius: "0 20px 20px 0",
-                mr: 2,
-                bgcolor: activeTab === 4 ? alpha("#3f51b5", 0.08) : "transparent",
-                "&.Mui-selected": {
-                  bgcolor: alpha("#3f51b5", 0.12),
-                },
-              }}
-            >
-              <ListItemIcon>
-                <AssessmentIcon color={activeTab === 4 ? "primary" : "inherit"} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Reports"
-                primaryTypographyProps={{
-                  fontWeight: activeTab === 4 ? "medium" : "normal",
-                  color: activeTab === 4 ? "primary.main" : "inherit",
-                }}
-              />
-            </ListItem>
-            {/* Generate Salary Option */}
-            <ListItem
-              button
-              selected={activeTab === 5}
-              onClick={() => handleTabChange(5)}
-              sx={{
-                borderRadius: "0 20px 20px 0",
-                mr: 2,
-                bgcolor: activeTab === 5 ? alpha("#3f51b5", 0.08) : "transparent",
-                "&.Mui-selected": {
-                  bgcolor: alpha("#3f51b5", 0.12),
-                },
-              }}
-            >
-              <ListItemIcon>
-                <AttachMoneyIcon color={activeTab === 5 ? "primary" : "inherit"} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Generate Salary"
-                primaryTypographyProps={{
-                  fontWeight: activeTab === 5 ? "medium" : "normal",
-                  color: activeTab === 5 ? "primary.main" : "inherit",
-                }}
-              />
-            </ListItem>
           </List>
-          <Divider sx={{ my: 2 }} />
-          <List>
-            <ListItem button sx={{ borderRadius: "0 20px 20px 0", mr: 2, color: "error.main" }}>
-              <ListItemIcon>
-                <ExitToAppIcon color="error" />
-              </ListItemIcon>
-              <ListItemText primary="Logout" primaryTypographyProps={{ color: "error.main" }} />
-            </ListItem>
-          </List>
-        </Box>
-      </Drawer>
-
-      {/* Main Content */}
-      <Main open={drawerOpen} isMobile={isMobile}>
-        <Toolbar />
-        {isSmall && <Box sx={{ height: 48 }} /> /* Extra space for search bar on small screens */}
-
-        {activeTab === 0 && (
-          <>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
-                Admin Dashboard
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Manage employee leave requests and accounts
-              </Typography>
-            </Box>
-
-            {/* Summary Cards */}
-            <Grid container spacing={isSmall ? 2 : 3} sx={{ mb: 4 }}>
-              <Grid item xs={6} sm={6} md={3}>
-                <SummaryCard cardcolor="#3f51b5">
-                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <Box>
-                        <Typography
-                          variant="subtitle2"
-                          color="text.secondary"
-                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
-                        >
-                          Total Leaves
-                        </Typography>
-                        <Typography
-                          variant="h4"
-                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
-                        >
-                          {total}
-                        </Typography>
-                      </Box>
-                      <Avatar
-                        sx={{
-                          bgcolor: alpha("#3f51b5", 0.1),
-                          color: "primary.main",
-                          width: isSmall ? 28 : 40,
-                          height: isSmall ? 28 : 40,
-                        }}
-                      >
-                        <AssessmentIcon fontSize={isSmall ? "small" : "medium"} />
-                      </Avatar>
-                    </Box>
-                  </CardContent>
-                </SummaryCard>
-              </Grid>
-
-              <Grid item xs={6} sm={6} md={3}>
-                <SummaryCard cardcolor="#ff9800">
-                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <Box>
-                        <Typography
-                          variant="subtitle2"
-                          color="text.secondary"
-                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
-                        >
-                          Pending
-                        </Typography>
-                        <Typography
-                          variant="h4"
-                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
-                        >
-                          {pending}
-                        </Typography>
-                      </Box>
-                      <Avatar
-                        sx={{
-                          bgcolor: alpha("#ff9800", 0.1),
-                          color: "#ff9800",
-                          width: isSmall ? 28 : 40,
-                          height: isSmall ? 28 : 40,
-                        }}
-                      >
-                        <EventIcon fontSize={isSmall ? "small" : "medium"} />
-                      </Avatar>
-                    </Box>
-                  </CardContent>
-                </SummaryCard>
-              </Grid>
-
-              <Grid item xs={6} sm={6} md={3}>
-                <SummaryCard cardcolor="#4caf50">
-                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <Box>
-                        <Typography
-                          variant="subtitle2"
-                          color="text.secondary"
-                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
-                        >
-                          Approved
-                        </Typography>
-                        <Typography
-                          variant="h4"
-                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
-                        >
-                          {approved}
-                        </Typography>
-                      </Box>
-                      <Avatar
-                        sx={{
-                          bgcolor: alpha("#4caf50", 0.1),
-                          color: "#4caf50",
-                          width: isSmall ? 28 : 40,
-                          height: isSmall ? 28 : 40,
-                        }}
-                      >
-                        <CheckIcon fontSize={isSmall ? "small" : "medium"} />
-                      </Avatar>
-                    </Box>
-                  </CardContent>
-                </SummaryCard>
-              </Grid>
-
-              <Grid item xs={6} sm={6} md={3}>
-                <SummaryCard cardcolor="#f44336">
-                  <CardContent sx={{ p: isSmall ? 1.5 : 2 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <Box>
-                        <Typography
-                          variant="subtitle2"
-                          color="text.secondary"
-                          sx={{ fontSize: isSmall ? "0.7rem" : "inherit" }}
-                        >
-                          Rejected
-                        </Typography>
-                        <Typography
-                          variant="h4"
-                          sx={{ fontWeight: "bold", mt: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}
-                        >
-                          {rejected}
-                        </Typography>
-                      </Box>
-                      <Avatar
-                        sx={{
-                          bgcolor: alpha("#f44336", 0.1),
-                          color: "#f44336",
-                          width: isSmall ? 28 : 40,
-                          height: isSmall ? 28 : 40,
-                        }}
-                      >
-                        <CloseIcon fontSize={isSmall ? "small" : "medium"} />
-                      </Avatar>
-                    </Box>
-                  </CardContent>
-                </SummaryCard>
-              </Grid>
-            </Grid>
-
-            {/* Pending Leave Requests */}
-            <Box sx={{ mb: 4 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 2,
-                  flexWrap: "wrap",
-                  gap: 1,
-                }}
-              >
-                <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1rem" : "1.25rem" }}>
-                  Pending Leave Requests
-                </Typography>
-                <FormControl size="small" sx={{ minWidth: isSmall ? 120 : 150 }}>
-                  <InputLabel id="filter-status-label">Filter Status</InputLabel>
-                  <Select
-                    labelId="filter-status-label"
-                    value={filterStatus}
-                    label="Filter Status"
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    startAdornment={<FilterListIcon fontSize="small" sx={{ mr: 1 }} />}
-                  >
-                    <MenuItem value="All">All</MenuItem>
-                    <MenuItem value="Pending">Pending</MenuItem>
-                    <MenuItem value="Approved">Approved</MenuItem>
-                    <MenuItem value="Rejected">Rejected</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-
-              <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-                <ResponsiveTableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <StyledTableCell>Employee</StyledTableCell>
-                        <StyledTableCell>Start Date</StyledTableCell>
-                        <StyledTableCell>End Date</StyledTableCell>
-                        {!isSmall && <StyledTableCell>Reason</StyledTableCell>}
-                        <StyledTableCell>Status</StyledTableCell>
-                        <StyledTableCell align="right">Actions</StyledTableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={isSmall ? 5 : 6} align="center" sx={{ py: 3 }}>
-                            <CircularProgress size={30} />
-                            <Typography variant="body2" sx={{ mt: 1 }}>
-                              Loading leave requests...
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : leaveRequests.filter((req) => req.status === "Pending").length > 0 ? (
-                        leaveRequests
-                          .filter((req) => req.status === "Pending")
-                          .map((leave) => (
-                            <StyledTableRow key={leave._id}>
-                              <TableCell>
-                                <Box sx={{ display: "flex", alignItems: "center" }}>
-                                  <Avatar
-                                    sx={{
-                                      width: isSmall ? 24 : 32,
-                                      height: isSmall ? 24 : 32,
-                                      mr: 1,
-                                      bgcolor: "primary.main",
-                                    }}
-                                  >
-                                    {getInitials(leave.userId)}
-                                  </Avatar>
-                                  {isSmall ? getInitials(leave.userId) : leave.userId}
-                                </Box>
-                              </TableCell>
-                              <TableCell>{leave.startDate}</TableCell>
-                              <TableCell>{leave.endDate}</TableCell>
-                              {!isSmall && <TableCell>{leave.reason}</TableCell>}
-                              <TableCell>
-                                <StatusChip label={leave.status} status={leave.status} size="small" />
-                              </TableCell>
-                              <TableCell align="right">
-                                {isSmall ? (
-                                  <IconButton size="small" onClick={(e) => handleActionMenuOpen(e, leave)}>
-                                    <MoreVertIcon fontSize="small" />
-                                  </IconButton>
-                                ) : (
-                                  <>
-                                    <Button
-                                      variant="outlined"
-                                      color="success"
-                                      size="small"
-                                      startIcon={<CheckIcon />}
-                                      onClick={() => handleLeaveAction(leave, "Approved")}
-                                      sx={{ mr: 1, borderRadius: 8 }}
-                                    >
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      variant="outlined"
-                                      color="error"
-                                      size="small"
-                                      startIcon={<CloseIcon />}
-                                      onClick={() => updateLeaveStatus(leave._id, "Rejected")}
-                                      sx={{ borderRadius: 8 }}
-                                    >
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
-                              </TableCell>
-                            </StyledTableRow>
-                          ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={isSmall ? 5 : 6} align="center" sx={{ py: 3 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              No pending leave requests found
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ResponsiveTableContainer>
-              </Paper>
-            </Box>
-
-            {/* Employee Management */}
-            <Box
-              sx={{
-                mb: 2,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 1,
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1rem" : "1.25rem" }}>
-                Employee Management
-              </Typography>
+          {pending > 0 && (
+            <Box sx={{ p: 2, borderTop: 1, borderColor: "divider", textAlign: "center" }}>
               <Button
-                variant="contained"
-                color="primary"
-                startIcon={!isSmall && <AddIcon />}
-                onClick={() => setOpen(true)}
-                sx={{
-                  borderRadius: 8,
-                  px: isSmall ? 2 : 3,
-                  boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
-                  "&:hover": {
-                    boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
-                  },
+                size="small"
+                onClick={() => {
+                  setActiveView("leaveRequests")
+                  setNotificationAnchor(null)
                 }}
               >
-                {isSmall ? <AddIcon /> : "Add Employee"}
+                View All
               </Button>
             </Box>
+          )}
+        </Menu>
 
-            <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-              <ResponsiveTableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <StyledTableCell>Name</StyledTableCell>
-                      {!isSmall && <StyledTableCell>Email</StyledTableCell>}
-                      <StyledTableCell>Role</StyledTableCell>
-                      <StyledTableCell align="right">Actions</StyledTableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={isSmall ? 3 : 4} align="center" sx={{ py: 3 }}>
-                          <CircularProgress size={30} />
-                          <Typography variant="body2" sx={{ mt: 1 }}>
-                            Loading employees...
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      users.map((user) => (
-                        <StyledTableRow key={user._id}>
-                          <TableCell>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <Avatar
-                                sx={{
-                                  width: isSmall ? 24 : 32,
-                                  height: isSmall ? 24 : 32,
-                                  mr: 1,
-                                  bgcolor: user.role === "admin" ? "secondary.main" : "primary.main",
-                                }}
-                              >
-                                {getInitials(user.name)}
-                              </Avatar>
-                              {user.name}
-                            </Box>
-                          </TableCell>
-                          {!isSmall && <TableCell>{user.email}</TableCell>}
-                          <TableCell>
-                            <StatusChip
-                              label={user.role === "admin" ? "Admin" : "Employee"}
-                              status={user.role === "admin" ? "Admin" : "Employee"}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-                              <Button
-                                variant="text"
-                                color="primary"
-                                size="small"
-                                onClick={() => handleEmployeeClick(user.name)}
-                                sx={{ borderRadius: 8 }}
-                              >
-                                {isSmall ? "View" : "View History"}
-                              </Button>
-                              <Button
-                                variant="outlined"
-                                color="primary"
-                                size="small"
-                                startIcon={!isSmall && <EditIcon />}
-                                onClick={() => handleEditEmployee(user)}
-                                sx={{ borderRadius: 8 }}
-                              >
-                                {isSmall ? <EditIcon fontSize="small" /> : "Edit"}
-                              </Button>
-                            </Box>
-                          </TableCell>
-                        </StyledTableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </ResponsiveTableContainer>
-            </Paper>
-          </>
+        {/* <CHANGE> Modern drawer with swipeable support on mobile */}
+        {isMobile ? (
+          <SwipeableDrawer
+            anchor="left"
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            onOpen={() => setDrawerOpen(true)}
+            sx={{
+              "& .MuiDrawer-paper": {
+                width: { xs: "85%", sm: DRAWER_WIDTH },
+                boxSizing: "border-box",
+                backgroundImage: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)}, ${alpha(theme.palette.background.paper, 0.95)})`,
+                backdropFilter: "blur(10px)",
+                boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
+              },
+            }}
+          >
+            {sidebarContent}
+          </SwipeableDrawer>
+        ) : (
+          <StyledDrawer variant="permanent" open={drawerOpen}>
+            {sidebarContent}
+          </StyledDrawer>
         )}
 
-        {activeTab === 1 && (
-          <>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
-                Leave Calendar
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                View all employee leaves in calendar format
-              </Typography>
-            </Box>
-
-            {/* Calendar Header */}
-            <Paper
-              elevation={0}
-              sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 3 }}
-            >
-              <Box
-                sx={{
-                  p: isSmall ? 1 : 2,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  borderBottom: "1px solid rgba(0,0,0,0.08)",
-                }}
-              >
-                <Button
-                  startIcon={<ChevronLeftIcon />}
-                  onClick={handlePrevMonth}
-                  sx={{ borderRadius: 8, p: isSmall ? "4px 8px" : undefined }}
-                  size={isSmall ? "small" : "medium"}
-                >
-                  {isSmall ? "" : "Previous"}
-                </Button>
-                <Typography variant="h6" sx={{ fontWeight: "medium", fontSize: isSmall ? "0.9rem" : "1.25rem" }}>
-                  {currentMonth.toLocaleDateString("en-US", {
-                    month: isSmall ? "short" : "long",
-                    year: "numeric",
-                  })}
-                </Typography>
-                <Button
-                  endIcon={<ChevronRightIcon />}
-                  onClick={handleNextMonth}
-                  sx={{ borderRadius: 8, p: isSmall ? "4px 8px" : undefined }}
-                  size={isSmall ? "small" : "medium"}
-                >
-                  {isSmall ? "" : "Next"}
-                </Button>
-              </Box>
-
-              {/* Calendar Grid */}
-              <Box sx={{ p: isSmall ? 1 : 2 }}>
-                <Grid container spacing={isSmall ? 0.5 : 1} sx={{ mb: isSmall ? 1 : 2 }}>
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
-                    <Grid item xs={12 / 7} key={index}>
-                      <Box
-                        sx={{
-                          textAlign: "center",
-                          fontWeight: "medium",
-                          color: index === 0 || index === 6 ? "error.main" : "inherit",
-                          fontSize: isSmall ? "0.7rem" : "inherit",
-                        }}
-                      >
-                        {isSmall ? day.charAt(0) : day}
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-
-                <Grid container spacing={isSmall ? 0.5 : 1}>
-                  {calendarData.map((day, index) => (
-                    <Grid item xs={12 / 7} key={index}>
-                      {day.day && (
-                        <CalendarDay
-                          isWeekend={day.isWeekend}
-                          isToday={day.isToday}
-                          hasLeave={day.leaves.length > 0}
-                          onClick={() => handleDateClick(day.date, day.leaves)}
-                        >
-                          <Box sx={{ display: "flex", justifyContent: "space-between", mb: isSmall ? 0.5 : 1 }}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: day.isToday ? "bold" : "normal",
-                                fontSize: isSmall ? "0.7rem" : "inherit",
-                              }}
-                            >
-                              {day.day}
-                            </Typography>
-                            {day.leaves.length > 0 && (
-                              <Chip
-                                label={day.leaves.length}
-                                size="small"
-                                sx={{
-                                  height: isSmall ? "14px" : "18px",
-                                  fontSize: isSmall ? "8px" : "10px",
-                                  bgcolor: "primary.main",
-                                  color: "white",
-                                }}
-                              />
-                            )}
-                          </Box>
-                          {!isSmall && (
-                            <Box sx={{ overflow: "hidden", maxHeight: "54px" }}>
-                              {day.leaves.slice(0, 3).map((leave, i) => (
-                                <LeaveIndicator key={i} status={leave.status}>
-                                  <Typography variant="caption" sx={{ fontSize: "10px", fontWeight: "medium" }}>
-                                    {leave.userId}
-                                  </Typography>
-                                </LeaveIndicator>
-                              ))}
-                              {day.leaves.length > 3 && (
-                                <Typography variant="caption" sx={{ fontSize: "10px", color: "text.secondary" }}>
-                                  +{day.leaves.length - 3} more
-                                </Typography>
-                              )}
-                            </Box>
-                          )}
-                        </CalendarDay>
-                      )}
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            </Paper>
-
-            {/* Selected Day Details */}
-            {selectedDate && (
-              <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-                <Box
-                  sx={{
-                    p: isSmall ? 1.5 : 2,
-                    borderBottom: "1px solid rgba(0,0,0,0.08)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Typography
-                    variant="h6"
+        <Main open={drawerOpen && !isMobile}>
+          <DrawerHeader />
+          <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: 4 }}>
+            {/* <CHANGE> Dashboard view with modern stat cards */}
+            {activeView === "dashboard" && (
+              <>
+                <Fade in={true} timeout={500}>
+                  <Box
                     sx={{
-                      fontWeight: "medium",
                       display: "flex",
-                      alignItems: "center",
-                      fontSize: isSmall ? "0.9rem" : "1.25rem",
+                      justifyContent: "space-between",
+                      alignItems: { xs: "flex-start", sm: "center" },
+                      flexDirection: { xs: "column", sm: "row" },
+                      mb: 4,
+                      gap: 2,
                     }}
                   >
-                    <TodayIcon sx={{ mr: 1, fontSize: isSmall ? "1rem" : "1.5rem" }} />
-                    {formatDate(selectedDate)}
-                  </Typography>
-                  <IconButton size="small" onClick={() => setSelectedDate(null)}>
-                    <CloseIcon fontSize={isSmall ? "small" : "medium"} />
-                  </IconButton>
-                </Box>
-                <ResponsiveTableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <StyledTableCell>Employee</StyledTableCell>
-                        <StyledTableCell>Start Date</StyledTableCell>
-                        <StyledTableCell>End Date</StyledTableCell>
-                        {!isSmall && <StyledTableCell>Reason</StyledTableCell>}
-                        <StyledTableCell>Status</StyledTableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {dayLeaves.length > 0 ? (
-                        dayLeaves.map((leave, index) => (
-                          <StyledTableRow key={index}>
-                            <TableCell>
-                              <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Avatar
-                                  sx={{
-                                    width: isSmall ? 24 : 32,
-                                    height: isSmall ? 24 : 32,
-                                    mr: 1,
-                                    bgcolor: "primary.main",
-                                  }}
-                                >
-                                  {getInitials(leave.userId)}
-                                </Avatar>
-                                {isSmall ? getInitials(leave.userId) : leave.userId}
-                              </Box>
-                            </TableCell>
-                            <TableCell>{leave.startDate}</TableCell>
-                            <TableCell>{leave.endDate}</TableCell>
-                            {!isSmall && <TableCell>{leave.reason}</TableCell>}
-                            <TableCell>
-                              <StatusChip label={leave.status} status={leave.status} size="small" />
-                            </TableCell>
-                          </StyledTableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={isSmall ? 4 : 5} align="center" sx={{ py: 3 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              No leaves found for this date
+                    <Box>
+                      <Typography
+                        variant="h4"
+                        component="h1"
+                        fontWeight="bold"
+                        sx={{ fontSize: { xs: "1.75rem", sm: "2rem", md: "2.25rem" } }}
+                      >
+                        Admin Dashboard
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
+                        Overview of leave requests and employee management
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <GradientButton startIcon={<Add />} onClick={() => setOpen(true)}>
+                        Add Employee
+                      </GradientButton>
+                      <Tooltip title="Refresh data">
+                        <AnimatedIconButton
+                          onClick={fetchLeaveRequests}
+                          color="primary"
+                          sx={{
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                          }}
+                        >
+                          <Refresh />
+                        </AnimatedIconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                </Fade>
+
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Zoom in={true} style={{ transitionDelay: "100ms" }}>
+                      <StatCard accentColor={theme.palette.primary.main}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="600">
+                              Total Requests
                             </Typography>
-                          </TableCell>
-                        </TableRow>
+                            <Event color="primary" />
+                          </Box>
+
+                          <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
+                            <CircularProgressWithLabel
+                              value={total}
+                              total={Math.max(total, 10)}
+                              color={theme.palette.primary.main}
+                              label="requests"
+                            />
+                          </Box>
+
+                          <Divider sx={{ my: 2 }} />
+
+                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <Typography variant="body2" color="text.secondary">
+                              All time
+                            </Typography>
+                            <Chip label={total} size="small" color="primary" variant="filled" />
+                          </Box>
+                        </CardContent>
+                      </StatCard>
+                    </Zoom>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Zoom in={true} style={{ transitionDelay: "200ms" }}>
+                      <StatCard accentColor={theme.palette.warning.main}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="600">
+                              Pending
+                            </Typography>
+                            <HourglassEmpty color="warning" />
+                          </Box>
+
+                          <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
+                            <CircularProgressWithLabel
+                              value={pending}
+                              total={Math.max(total, 10)}
+                              color={theme.palette.warning.main}
+                              label="pending"
+                            />
+                          </Box>
+
+                          <Divider sx={{ my: 2 }} />
+
+                          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                            <Box sx={{ flexGrow: 1, mr: 2 }}>
+                              <LinearProgress
+                                variant="determinate"
+                                value={Math.min((pending / Math.max(total, 1)) * 100, 100) || 0}
+                                color="warning"
+                                sx={{ height: 8, borderRadius: 4 }}
+                              />
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                              {Math.round((pending / Math.max(total, 1)) * 100) || 0}%
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </StatCard>
+                    </Zoom>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Zoom in={true} style={{ transitionDelay: "300ms" }}>
+                      <StatCard accentColor={theme.palette.success.main}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="600">
+                              Approved
+                            </Typography>
+                            <CheckCircleOutline color="success" />
+                          </Box>
+
+                          <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
+                            <CircularProgressWithLabel
+                              value={approved}
+                              total={Math.max(total, 10)}
+                              color={theme.palette.success.main}
+                              label="approved"
+                            />
+                          </Box>
+
+                          <Divider sx={{ my: 2 }} />
+
+                          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                            <Box sx={{ flexGrow: 1, mr: 2 }}>
+                              <LinearProgress
+                                variant="determinate"
+                                value={Math.min((approved / Math.max(total, 1)) * 100, 100) || 0}
+                                color="success"
+                                sx={{ height: 8, borderRadius: 4 }}
+                              />
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                              {Math.round((approved / Math.max(total, 1)) * 100) || 0}%
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </StatCard>
+                    </Zoom>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Zoom in={true} style={{ transitionDelay: "400ms" }}>
+                      <StatCard accentColor={theme.palette.error.main}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="600">
+                              Rejected
+                            </Typography>
+                            <CancelOutlined color="error" />
+                          </Box>
+
+                          <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
+                            <CircularProgressWithLabel
+                              value={rejected}
+                              total={Math.max(total, 10)}
+                              color={theme.palette.error.main}
+                              label="rejected"
+                            />
+                          </Box>
+
+                          <Divider sx={{ my: 2 }} />
+
+                          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                            <Box sx={{ flexGrow: 1, mr: 2 }}>
+                              <LinearProgress
+                                variant="determinate"
+                                value={Math.min((rejected / Math.max(total, 1)) * 100, 100) || 0}
+                                color="error"
+                                sx={{ height: 8, borderRadius: 4 }}
+                              />
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                              {Math.round((rejected / Math.max(total, 1)) * 100) || 0}%
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </StatCard>
+                    </Zoom>
+                  </Grid>
+                </Grid>
+
+                <Fade in={true} timeout={800}>
+                  <GlassCard>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>
+                        Recent Leave Requests
+                      </Typography>
+
+                      {loading ? (
+                        <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+                          <CircularProgress size={40} />
+                        </Box>
+                      ) : (
+                        <StyledTableContainer>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Employee</TableCell>
+                                <TableCell>Type</TableCell>
+                                <TableCell>From</TableCell>
+                                <TableCell>To</TableCell>
+                                {!isMobile && <TableCell>Duration</TableCell>}
+                                <TableCell>Status</TableCell>
+                                {!isMobile && <TableCell align="center">Actions</TableCell>}
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {leaveRequests.slice(0, 5).map((leave) => (
+                                <TableRow key={leave._id} hover>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <StyledAvatar sx={{ width: 32, height: 32 }}>
+                                        {getInitials(leave.userId)}
+                                      </StyledAvatar>
+                                      <Typography variant="body2" fontWeight="medium">
+                                        {leave.userId}
+                                      </Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Chip
+                                      icon={<LeaveTypeIcon type={leave.type} fontSize="small" />}
+                                      label={leave.type}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  </TableCell>
+                                  <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
+                                  <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
+                                  {!isMobile && (
+                                    <TableCell>
+                                      <Chip
+                                        label={`${differenceInDays(new Date(leave.endDate), new Date(leave.startDate)) + 1} days`}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                      />
+                                    </TableCell>
+                                  )}
+                                  <TableCell>{getStatusChip(leave.status)}</TableCell>
+                                  {!isMobile && (
+                                    <TableCell align="center">
+                                      {leave.status === "Pending" && (
+                                        <Stack direction="row" spacing={1} justifyContent="center">
+                                          <Tooltip title="Approve">
+                                            <IconButton
+                                              size="small"
+                                              color="success"
+                                              onClick={() => handleLeaveAction(leave, "Approved")}
+                                            >
+                                              <Check />
+                                            </IconButton>
+                                          </Tooltip>
+                                          <Tooltip title="Reject">
+                                            <IconButton
+                                              size="small"
+                                              color="error"
+                                              onClick={() => updateLeaveStatus(leave._id, "Rejected")}
+                                            >
+                                              <Close />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </Stack>
+                                      )}
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </StyledTableContainer>
                       )}
-                    </TableBody>
-                  </Table>
-                </ResponsiveTableContainer>
-              </Paper>
+
+                      <Box sx={{ mt: 3, textAlign: "center" }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => setActiveView("leaveRequests")}
+                          sx={{ borderRadius: 10 }}
+                        >
+                          View All Requests
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </GlassCard>
+                </Fade>
+              </>
             )}
-          </>
-        )}
 
-        {/* View History Section */}
-        {activeTab === 3 && (
-          <>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
-                Leave History
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                View detailed leave history and analytics for employees
-              </Typography>
-            </Box>
-
-            <Paper
-              elevation={0}
-              sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)", mb: 4 }}
-            >
-              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                <Tabs
-                  value={historyTab}
-                  onChange={handleHistoryTabChange}
-                  aria-label="history tabs"
-                  variant={isSmall ? "fullWidth" : "standard"}
-                >
-                  <StyledTab label={isSmall ? "Distribution" : "Leave Distribution"} />
-                  <StyledTab label={isSmall ? "Trends" : "Monthly Trends"} />
-                </Tabs>
-              </Box>
-
-              {historyTab === 0 && (
-                <Box sx={{ p: isSmall ? 1.5 : 3 }}>
-                  <Grid container spacing={isSmall ? 2 : 3}>
-                    <Grid item xs={12}>
-                      <Typography
-                        variant="h6"
-                        sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}
+            {/* <CHANGE> Leave Requests view with modern table */}
+            {activeView === "leaveRequests" && (
+              <Fade in={true} timeout={500}>
+                <Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 4,
+                      flexWrap: "wrap",
+                      gap: 2,
+                    }}
+                  >
+                    <Typography variant="h4" component="h1" fontWeight="bold">
+                      Leave Requests
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <TextField
+                        size="small"
+                        placeholder="Search employee..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Search color="primary" />
+                            </InputAdornment>
+                          ),
+                          endAdornment: searchQuery && (
+                            <InputAdornment position="end">
+                              <IconButton size="small" onClick={() => setSearchQuery("")}>
+                                <Close fontSize="small" />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{ minWidth: { xs: "100%", sm: 200 } }}
+                      />
+                      <FormControl
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          minWidth: { xs: "100%", sm: 150 },
+                        }}
                       >
-                        Leave Distribution by Type
-                      </Typography>
-                      <Box sx={{ height: isSmall ? 200 : 300 }}>
-                        <LeaveTypeDistribution data={leaveStats} />
-                      </Box>
+                        <InputLabel id="filter-label">Filter</InputLabel>
+                        <Select
+                          labelId="filter-label"
+                          value={filterStatus}
+                          onChange={(e) => setFilterStatus(e.target.value)}
+                          label="Filter"
+                        >
+                          <MenuItem value="All">All</MenuItem>
+                          <MenuItem value="Pending">Pending</MenuItem>
+                          <MenuItem value="Approved">Approved</MenuItem>
+                          <MenuItem value="Rejected">Rejected</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Tooltip title="Refresh data">
+                        <AnimatedIconButton
+                          onClick={fetchLeaveRequests}
+                          color="primary"
+                          sx={{
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                          }}
+                        >
+                          <Refresh />
+                        </AnimatedIconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+
+                  <GlassCard>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      {loading ? (
+                        <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+                          <CircularProgress size={40} />
+                        </Box>
+                      ) : filteredRequests.length === 0 ? (
+                        <Paper sx={{ p: 3, textAlign: "center", borderRadius: 16 }}>
+                          <Typography variant="body1" color="text.secondary">
+                            {searchQuery || filterStatus !== "All"
+                              ? "No matching leave requests found"
+                              : "No leave requests found"}
+                          </Typography>
+                        </Paper>
+                      ) : isMobile ? (
+                        <Box sx={{ mt: 2 }}>
+                          {filteredRequests.map((leave, index) => (
+                            <Grow in={true} key={leave._id} timeout={(index + 1) * 200}>
+                              <GlassCard sx={{ mb: 3 }}>
+                                <CardContent sx={{ p: 3 }}>
+                                  <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <StyledAvatar>{getInitials(leave.userId)}</StyledAvatar>
+                                      <Box>
+                                        <Typography variant="subtitle1" fontWeight="600">
+                                          {leave.userId}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                          {leave.type}
+                                        </Typography>
+                                      </Box>
+                                    </Box>
+                                    {getStatusChip(leave.status)}
+                                  </Box>
+
+                                  <Box
+                                    sx={{
+                                      p: 2,
+                                      borderRadius: 2,
+                                      bgcolor: alpha(theme.palette.grey[100], 0.5),
+                                      mb: 2,
+                                    }}
+                                  >
+                                    <Grid container spacing={2}>
+                                      <Grid item xs={6}>
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                          sx={{ display: "block", mb: 0.5 }}
+                                        >
+                                          From
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight="medium">
+                                          {new Date(leave.startDate).toLocaleDateString()}
+                                        </Typography>
+                                      </Grid>
+                                      <Grid item xs={6}>
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                          sx={{ display: "block", mb: 0.5 }}
+                                        >
+                                          To
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight="medium">
+                                          {new Date(leave.endDate).toLocaleDateString()}
+                                        </Typography>
+                                      </Grid>
+                                    </Grid>
+                                  </Box>
+
+                                  {leave.status === "Pending" && (
+                                    <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between", gap: 1 }}>
+                                      <GradientButton
+                                        color="success"
+                                        fullWidth
+                                        size="small"
+                                        onClick={() => handleLeaveAction(leave, "Approved")}
+                                      >
+                                        Approve
+                                      </GradientButton>
+                                      <Button
+                                        variant="outlined"
+                                        color="error"
+                                        fullWidth
+                                        size="small"
+                                        onClick={() => updateLeaveStatus(leave._id, "Rejected")}
+                                      >
+                                        Reject
+                                      </Button>
+                                    </Box>
+                                  )}
+                                </CardContent>
+                              </GlassCard>
+                            </Grow>
+                          ))}
+                        </Box>
+                      ) : (
+                        <StyledTableContainer>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Employee</TableCell>
+                                <TableCell>Type</TableCell>
+                                <TableCell>From</TableCell>
+                                <TableCell>To</TableCell>
+                                <TableCell>Duration</TableCell>
+                                <TableCell>Reason</TableCell>
+                                <TableCell>Status</TableCell>
+                                <TableCell align="center">Actions</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {filteredRequests.map((leave) => (
+                                <TableRow key={leave._id} hover>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <StyledAvatar sx={{ width: 32, height: 32 }}>
+                                        {getInitials(leave.userId)}
+                                      </StyledAvatar>
+                                      <Typography variant="body2" fontWeight="medium">
+                                        {leave.userId}
+                                      </Typography>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Chip
+                                      icon={<LeaveTypeIcon type={leave.type} fontSize="small" />}
+                                      label={leave.type}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  </TableCell>
+                                  <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
+                                  <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
+                                  <TableCell>
+                                    <Chip
+                                      label={`${differenceInDays(new Date(leave.endDate), new Date(leave.startDate)) + 1} days`}
+                                      size="small"
+                                      color="primary"
+                                      variant="outlined"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        maxWidth: 200,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {leave.reason}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>{getStatusChip(leave.status)}</TableCell>
+                                  <TableCell align="center">
+                                    {leave.status === "Pending" && (
+                                      <Stack direction="row" spacing={1} justifyContent="center">
+                                        <Tooltip title="Approve">
+                                          <IconButton
+                                            size="small"
+                                            color="success"
+                                            onClick={() => handleLeaveAction(leave, "Approved")}
+                                          >
+                                            <Check />
+                                          </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="Reject">
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            onClick={() => updateLeaveStatus(leave._id, "Rejected")}
+                                          >
+                                            <Close />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </Stack>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </StyledTableContainer>
+                      )}
+                    </CardContent>
+                  </GlassCard>
+                </Box>
+              </Fade>
+            )}
+
+            {/* <CHANGE> Employees view with modern cards */}
+            {activeView === "employees" && (
+              <Fade in={true} timeout={500}>
+                <Box>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+                    <Typography variant="h4" component="h1" fontWeight="bold">
+                      Employee Management
+                    </Typography>
+                    <GradientButton startIcon={<Add />} onClick={() => setOpen(true)}>
+                      Add Employee
+                    </GradientButton>
+                  </Box>
+
+                  <GlassCard>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      {loading ? (
+                        <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+                          <CircularProgress size={40} />
+                        </Box>
+                      ) : users.length === 0 ? (
+                        <Paper sx={{ p: 3, textAlign: "center", borderRadius: 16 }}>
+                          <Typography variant="body1" color="text.secondary">
+                            No employees found
+                          </Typography>
+                        </Paper>
+                      ) : isMobile ? (
+                        <Box sx={{ mt: 2 }}>
+                          {users.map((user, index) => (
+                            <Grow in={true} key={user._id} timeout={(index + 1) * 200}>
+                              <GlassCard sx={{ mb: 3 }}>
+                                <CardContent sx={{ p: 3 }}>
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                                    <StyledAvatar sx={{ width: 48, height: 48, bgcolor: theme.palette.primary.main }}>
+                                      {getInitials(user.name)}
+                                    </StyledAvatar>
+                                    <Box sx={{ flexGrow: 1 }}>
+                                      <Typography variant="subtitle1" fontWeight="600">
+                                        {user.name}
+                                      </Typography>
+                                      <Typography variant="body2" color="text.secondary">
+                                        {user.email}
+                                      </Typography>
+                                    </Box>
+                                    <IconButton size="small" onClick={() => handleEditEmployee(user)}>
+                                      <Edit fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+
+                                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                    <Chip label={user.role} size="small" color="primary" variant="outlined" />
+                                    {user.isTeamLeader && (
+                                      <Chip label="Team Leader" size="small" color="secondary" variant="outlined" />
+                                    )}
+                                  </Box>
+
+                                  <Divider sx={{ my: 2 }} />
+
+                                  <Grid container spacing={1}>
+                                    <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary">
+                                        Total Leaves
+                                      </Typography>
+                                      <Typography variant="body2" fontWeight="medium">
+                                        {user.totalLeaves || 0}
+                                      </Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary">
+                                        Salary
+                                      </Typography>
+                                      <Typography variant="body2" fontWeight="medium">
+                                        ${user.salary || 0}
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>
+
+                                  <Button
+                                    fullWidth
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => handleEmployeeClick(user.name)}
+                                    sx={{ mt: 2, borderRadius: 10 }}
+                                  >
+                                    View Leave History
+                                  </Button>
+                                </CardContent>
+                              </GlassCard>
+                            </Grow>
+                          ))}
+                        </Box>
+                      ) : (
+                        <StyledTableContainer>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Employee</TableCell>
+                                <TableCell>Email</TableCell>
+                                <TableCell>Role</TableCell>
+                                <TableCell>Total Leaves</TableCell>
+                                <TableCell>Salary</TableCell>
+                                <TableCell align="center">Actions</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {users.map((user) => (
+                                <TableRow key={user._id} hover>
+                                  <TableCell>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <StyledAvatar sx={{ width: 32, height: 32 }}>
+                                        {getInitials(user.name)}
+                                      </StyledAvatar>
+                                      <Box>
+                                        <Typography variant="body2" fontWeight="medium">
+                                          {user.name}
+                                        </Typography>
+                                        {user.isTeamLeader && (
+                                          <Chip
+                                            label="Team Leader"
+                                            size="small"
+                                            color="secondary"
+                                            variant="outlined"
+                                            sx={{ height: 16, fontSize: "0.65rem" }}
+                                          />
+                                        )}
+                                      </Box>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>{user.email}</TableCell>
+                                  <TableCell>
+                                    <Chip label={user.role} size="small" color="primary" variant="outlined" />
+                                  </TableCell>
+                                  <TableCell>{user.totalLeaves || 0}</TableCell>
+                                  <TableCell>${user.salary || 0}</TableCell>
+                                  <TableCell align="center">
+                                    <Stack direction="row" spacing={1} justifyContent="center">
+                                      <Tooltip title="Edit">
+                                        <IconButton size="small" color="primary" onClick={() => handleEditEmployee(user)}>
+                                          <Edit fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="View History">
+                                        <IconButton
+                                          size="small"
+                                          color="info"
+                                          onClick={() => handleEmployeeClick(user.name)}
+                                        >
+                                          <History fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </Stack>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </StyledTableContainer>
+                      )}
+                    </CardContent>
+                  </GlassCard>
+                </Box>
+              </Fade>
+            )}
+
+            {/* <CHANGE> Analytics view */}
+            {activeView === "analytics" && (
+              <Fade in={true} timeout={500}>
+                <Box>
+                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                    Analytics & Reports
+                  </Typography>
+
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <GlassCard>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                            Leave Type Distribution
+                          </Typography>
+                          <Box sx={{ height: 300 }}>
+                            <LeaveTypeDistribution data={overallStats.leavesByType} />
+                          </Box>
+                        </CardContent>
+                      </GlassCard>
                     </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <GlassCard>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                            Monthly Leave Report
+                          </Typography>
+                          <Box sx={{ height: 300 }}>
+                            <MonthlyLeaveReport data={overallStats.leavesByMonth} />
+                          </Box>
+                        </CardContent>
+                      </GlassCard>
+                    </Grid>
+
                     <Grid item xs={12}>
-                      <Typography
-                        variant="h6"
-                        sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}
-                      >
-                        Employee Leave Distribution
-                      </Typography>
-                      <Box sx={{ height: isSmall ? 300 : 400 }}>
-                        <EmployeeLeaveDistribution data={overallStats.leavesByEmployee} />
-                      </Box>
+                      <GlassCard>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                            Employee Leave Comparison
+                          </Typography>
+                          <Box sx={{ height: 400 }}>
+                            <EmployeeLeaveComparison data={overallStats.leavesByEmployee} />
+                          </Box>
+                        </CardContent>
+                      </GlassCard>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <GlassCard>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                            Employee Leave Distribution
+                          </Typography>
+                          <Box sx={{ height: 400 }}>
+                            <EmployeeLeaveDistribution data={leaveStats} />
+                          </Box>
+                        </CardContent>
+                      </GlassCard>
                     </Grid>
                   </Grid>
                 </Box>
-              )}
+              </Fade>
+            )}
 
-              {historyTab === 1 && (
-                <Box sx={{ p: isSmall ? 1.5 : 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
-                    Monthly Leave Trends
+            {/* <CHANGE> Calendar view */}
+            {activeView === "calendar" && (
+              <Fade in={true} timeout={500}>
+                <Box>
+                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                    Leave Calendar
                   </Typography>
-                  <Box sx={{ height: isSmall ? 300 : 400 }}>
-                    <LeaveHistoryChart data={leaveStats} />
-                  </Box>
-                </Box>
-              )}
-            </Paper>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1rem" : "1.25rem" }}>
-                Employee Leave History
-              </Typography>
-            </Box>
+                  <GlassCard>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                        <IconButton onClick={handlePrevMonth} color="primary">
+                          <ChevronLeft />
+                        </IconButton>
+                        <Typography variant="h6" fontWeight="bold">
+                          {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                        </Typography>
+                        <IconButton onClick={handleNextMonth} color="primary">
+                          <ChevronRight />
+                        </IconButton>
+                      </Box>
 
-            <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-              <ResponsiveTableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <StyledTableCell>Employee</StyledTableCell>
-                      <StyledTableCell>Total</StyledTableCell>
-                      {!isSmall && (
-                        <>
-                          <StyledTableCell>Sick</StyledTableCell>
-                          <StyledTableCell>Casual</StyledTableCell>
-                          <StyledTableCell>Medical</StyledTableCell>
-                          <StyledTableCell>WFH</StyledTableCell>
-                        </>
-                      )}
-                      <StyledTableCell align="right">Actions</StyledTableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={isSmall ? 3 : 7} align="center" sx={{ py: 3 }}>
-                          <CircularProgress size={30} />
-                          <Typography variant="body2" sx={{ mt: 1 }}>
-                            Loading employee data...
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      users
-                        .filter((user) => user.role === "employee")
-                        .map((user) => (
-                          <StyledTableRow key={user._id}>
-                            <TableCell>
-                              <Box sx={{ display: "flex", alignItems: "center" }}>
-                                <Avatar
-                                  sx={{
-                                    width: isSmall ? 24 : 32,
-                                    height: isSmall ? 24 : 32,
-                                    mr: 1,
-                                    bgcolor: "primary.main",
-                                  }}
-                                >
-                                  {getInitials(user.name)}
-                                </Avatar>
-                                {user.name}
-                              </Box>
-                            </TableCell>
-                            <TableCell>{user.totalLeaves || 12}</TableCell>
-                            {!isSmall && (
-                              <>
-                                <TableCell>{user.sickleave || 0}</TableCell>
-                                <TableCell>{user.casualleave || 0}</TableCell>
-                                <TableCell>{user.medicalleave || 0}</TableCell>
-                                <TableCell>{user.Workfromhome || 0}</TableCell>
-                              </>
-                            )}
-                            <TableCell align="right">
-                              <Button
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                onClick={() => handleEmployeeClick(user.name)}
-                                sx={{ borderRadius: 8 }}
+                      <Grid container spacing={1}>
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                          <Grid item xs={12 / 7} key={day}>
+                            <Typography variant="caption" fontWeight="bold" align="center" display="block">
+                              {day}
+                            </Typography>
+                          </Grid>
+                        ))}
+
+                        {calendarData.map((dayData, index) => (
+                          <Grid item xs={12 / 7} key={index}>
+                            {dayData.day ? (
+                              <Box
+                                onClick={() => dayData.leaves.length > 0 && handleDateClick(dayData.date, dayData.leaves)}
+                                sx={{
+                                  height: 80,
+                                  p: 1,
+                                  border: "1px solid",
+                                  borderColor: dayData.isToday ? "primary.main" : "divider",
+                                  borderRadius: 2,
+                                  bgcolor: dayData.isWeekend
+                                    ? alpha(theme.palette.grey[100], 0.5)
+                                    : dayData.leaves.length > 0
+                                      ? alpha(theme.palette.primary.main, 0.1)
+                                      : "transparent",
+                                  cursor: dayData.leaves.length > 0 ? "pointer" : "default",
+                                  transition: "all 0.2s ease",
+                                  "&:hover": {
+                                    boxShadow: dayData.leaves.length > 0 ? "0 4px 8px rgba(0,0,0,0.1)" : "none",
+                                    transform: dayData.leaves.length > 0 ? "translateY(-2px)" : "none",
+                                  },
+                                }}
                               >
-                                {isSmall ? "View" : "View Details"}
-                              </Button>
-                            </TableCell>
-                          </StyledTableRow>
-                        ))
-                    )}
-                  </TableBody>
-                </Table>
-              </ResponsiveTableContainer>
-            </Paper>
-          </>
-        )}
+                                <Typography variant="body2" fontWeight={dayData.isToday ? "bold" : "normal"}>
+                                  {dayData.day}
+                                </Typography>
+                                {dayData.leaves.length > 0 && (
+                                  <Chip
+                                    label={dayData.leaves.length}
+                                    size="small"
+                                    color="primary"
+                                    sx={{ height: 16, fontSize: "0.65rem", mt: 0.5 }}
+                                  />
+                                )}
+                              </Box>
+                            ) : (
+                              <Box sx={{ height: 80 }} />
+                            )}
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </CardContent>
+                  </GlassCard>
 
-        {/* Show Employee Section when activeTab is 2 */}
-        {activeTab === 2 && <EmployeeSection />}
+                  {selectedDate && (
+                    <Dialog
+                      open={Boolean(selectedDate)}
+                      onClose={() => setSelectedDate(null)}
+                      maxWidth="sm"
+                      fullWidth
+                      PaperProps={{
+                        sx: {
+                          borderRadius: 3,
+                        },
+                      }}
+                    >
+                      <DialogTitle>
+                        <Typography variant="h6" fontWeight="bold">
+                          Leaves on {formatDate(selectedDate)}
+                        </Typography>
+                      </DialogTitle>
+                      <DialogContent>
+                        <List>
+                          {dayLeaves.map((leave, index) => (
+                            <ListItem key={index} divider>
+                              <ListItemIcon>
+                                <StyledAvatar sx={{ width: 32, height: 32 }}>{getInitials(leave.userId)}</StyledAvatar>
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={leave.userId}
+                                secondary={`${leave.type} - ${getStatusChip(leave.status)}`}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </DialogContent>
+                      <DialogActions>
+                        <Button onClick={() => setSelectedDate(null)} sx={{ borderRadius: 10 }}>
+                          Close
+                        </Button>
+                      </DialogActions>
+                    </Dialog>
+                  )}
+                </Box>
+              </Fade>
+            )}
 
-        {/* Reports Section */}
-        {activeTab === 4 && (
-          <>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, fontSize: isSmall ? "1.5rem" : "2.125rem" }}>
-                Leave Reports
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Comprehensive reports and analytics on employee leaves
-              </Typography>
-            </Box>
-
-            <Grid container spacing={isSmall ? 2 : 3}>
-              <Grid item xs={12} md={6}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    p: isSmall ? 1.5 : 3,
-                    height: "100%",
-                  }}
-                >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
-                    Leave Distribution by Type
+            {/* <CHANGE> Salary view */}
+            {activeView === "salary" && (
+              <Fade in={true} timeout={500}>
+                <Box>
+                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                    Salary Management
                   </Typography>
-                  <Box sx={{ height: isSmall ? 200 : 300 }}>
-                    <LeaveTypeDistribution data={leaveStats} />
-                  </Box>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    p: isSmall ? 1.5 : 3,
-                    height: "100%",
-                  }}
-                >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
-                    Monthly Leave Trends
-                  </Typography>
-                  <Box sx={{ height: isSmall ? 200 : 300 }}>
-                    <MonthlyLeaveReport data={overallStats.leavesByMonth} />
-                  </Box>
-                </Paper>
-              </Grid>
-              <Grid item xs={12}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    p: isSmall ? 1.5 : 3,
-                  }}
-                >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: isSmall ? "1rem" : "1.25rem" }}>
-                    Employee Leave Comparison
-                  </Typography>
-                  <Box sx={{ height: isSmall ? 300 : 400 }}>
-                    <EmployeeLeaveComparison data={overallStats.leavesByEmployee} />
-                  </Box>
-                </Paper>
-              </Grid>
-            </Grid>
-          </>
-        )}
 
-        {/* Generate Salary Section */}
-        {activeTab === 5 && <GenerateSalary />}
+                  <GlassCard>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <GenerateSalary />
+                    </CardContent>
+                  </GlassCard>
+                </Box>
+              </Fade>
+            )}
 
-        {/* Add Employee Dialog */}
-        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth fullScreen={isSmall}>
-          <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
-              Add New Employee
-            </Typography>
+            {/* <CHANGE> Settings view */}
+            {activeView === "settings" && (
+              <Fade in={true} timeout={500}>
+                <Box>
+                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                    Settings
+                  </Typography>
+
+                  <GlassCard>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+                        Settings panel will be available soon.
+                      </Typography>
+                    </CardContent>
+                  </GlassCard>
+                </Box>
+              </Fade>
+            )}
+
+            {/* <CHANGE> Help view */}
+            {activeView === "help" && (
+              <Fade in={true} timeout={500}>
+                <Box>
+                  <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
+                    Help & Support
+                  </Typography>
+
+                  <GlassCard>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+                        Help and support resources will be available soon.
+                      </Typography>
+                    </CardContent>
+                  </GlassCard>
+                </Box>
+              </Fade>
+            )}
+          </Container>
+        </Main>
+
+        {/* <CHANGE> Modern dialogs with animations */}
+        <Dialog
+          open={open}
+          onClose={() => setOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          fullScreen={isMobile}
+          PaperProps={{
+            sx: {
+              borderRadius: isMobile ? 0 : 5,
+              overflow: "hidden",
+              backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.paper, 0.9)})`,
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              py: 2,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              color: "primary.main",
+            }}
+          >
+            <Add /> Add New Employee
           </DialogTitle>
-          <DialogContent dividers>
-            <Grid container spacing={2}>
+          <DialogContent sx={{ pt: 3, mt: 2 }}>
+            <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Name"
-                  margin="dense"
                   value={newEmployee.name}
                   onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
                 />
@@ -1808,7 +2396,6 @@ const AdminDashboard = () => {
                 <TextField
                   fullWidth
                   label="Email"
-                  margin="dense"
                   value={newEmployee.email}
                   onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
                 />
@@ -1818,17 +2405,15 @@ const AdminDashboard = () => {
                   fullWidth
                   label="Password"
                   type="password"
-                  margin="dense"
                   value={newEmployee.password}
                   onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Total Leaves"
                   type="number"
-                  margin="dense"
                   value={newEmployee.totalLeaves}
                   onChange={(e) => setNewEmployee({ ...newEmployee, totalLeaves: e.target.value })}
                 />
@@ -1836,19 +2421,8 @@ const AdminDashboard = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Sick Leave"
-                  type="number"
-                  margin="dense"
-                  value={newEmployee.sickleave}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, sickleave: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
                   label="Salary"
                   type="number"
-                  margin="dense"
                   value={newEmployee.salary}
                   onChange={(e) => setNewEmployee({ ...newEmployee, salary: e.target.value })}
                 />
@@ -1856,9 +2430,17 @@ const AdminDashboard = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  label="Sick Leave"
+                  type="number"
+                  value={newEmployee.sickleave}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, sickleave: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
                   label="Casual Leave"
                   type="number"
-                  margin="dense"
                   value={newEmployee.casualleave}
                   onChange={(e) => setNewEmployee({ ...newEmployee, casualleave: e.target.value })}
                 />
@@ -1868,7 +2450,6 @@ const AdminDashboard = () => {
                   fullWidth
                   label="Medical Leave"
                   type="number"
-                  margin="dense"
                   value={newEmployee.medicalleave}
                   onChange={(e) => setNewEmployee({ ...newEmployee, medicalleave: e.target.value })}
                 />
@@ -1878,13 +2459,12 @@ const AdminDashboard = () => {
                   fullWidth
                   label="Work From Home"
                   type="number"
-                  margin="dense"
                   value={newEmployee.Workfromhome}
                   onChange={(e) => setNewEmployee({ ...newEmployee, Workfromhome: e.target.value })}
                 />
               </Grid>
               <Grid item xs={12}>
-                <FormControl fullWidth margin="dense">
+                <FormControl fullWidth>
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={newEmployee.role}
@@ -1894,84 +2474,90 @@ const AdminDashboard = () => {
                     <MenuItem value="employee">Employee</MenuItem>
                     <MenuItem value="admin">Admin</MenuItem>
                   </Select>
-                  <Grid item xs={12}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={newEmployee.isTeamLeader}
-                          onChange={(e) => setNewEmployee({ ...newEmployee, isTeamLeader: e.target.checked })}
-                        />
-                      }
-                      label="Is Team Leader?"
-                    />
-                  </Grid>
-
-                  {newEmployee.isTeamLeader && (
-                    <Grid item xl={12}>
-                      <FormControl fullWidth margin="dense">
-                        <InputLabel>Select Team Members</InputLabel>
-                        <Select
-                          multiple
-                          value={newEmployee.teamMembers}
-                          onChange={(e) => setNewEmployee({ ...newEmployee, teamMembers: e.target.value })}
-                          renderValue={(selected) => selected.join(", ")}
-                        >
-                          {employees.map((employee) => (
-                            <MenuItem key={employee._id} value={employee._id}>
-                              {employee.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  )}
                 </FormControl>
               </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={newEmployee.isTeamLeader}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, isTeamLeader: e.target.checked })}
+                    />
+                  }
+                  label="Is Team Leader?"
+                />
+              </Grid>
+              {newEmployee.isTeamLeader && (
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Select Team Members</InputLabel>
+                    <Select
+                      multiple
+                      value={newEmployee.teamMembers}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, teamMembers: e.target.value })}
+                      renderValue={(selected) => selected.join(", ")}
+                    >
+                      {employees.map((employee) => (
+                        <MenuItem key={employee._id} value={employee._id}>
+                          {employee.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
             </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
-            <Button onClick={() => setOpen(false)} color="inherit" variant="outlined" sx={{ borderRadius: 8 }}>
+            <Button
+              onClick={() => setOpen(false)}
+              variant="outlined"
+              color="inherit"
+              sx={{ borderRadius: 10, textTransform: "none", fontWeight: 600 }}
+            >
               Cancel
             </Button>
-            <Button
-              onClick={handleAddEmployee}
-              color="primary"
-              variant="contained"
-              startIcon={!isSmall && <AddIcon />}
-              sx={{
-                borderRadius: 8,
-                boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
-                "&:hover": {
-                  boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
-                },
-              }}
-            >
-              {isSmall ? <AddIcon /> : "Add Employee"}
-            </Button>
+            <GradientButton onClick={handleAddEmployee} startIcon={<Add />}>
+              Add Employee
+            </GradientButton>
           </DialogActions>
         </Dialog>
 
-        {/* Edit Employee Dialog */}
         <Dialog
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
           maxWidth="sm"
           fullWidth
-          fullScreen={isSmall}
+          fullScreen={isMobile}
+          PaperProps={{
+            sx: {
+              borderRadius: isMobile ? 0 : 5,
+              overflow: "hidden",
+              backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.paper, 0.9)})`,
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+            },
+          }}
         >
-          <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
-              Edit Employee
-            </Typography>
+          <DialogTitle
+            sx={{
+              py: 2,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              color: "primary.main",
+            }}
+          >
+            <Edit /> Edit Employee
           </DialogTitle>
-          <DialogContent dividers>
+          <DialogContent sx={{ pt: 3, mt: 2 }}>
             {employeeToEdit && (
-              <Grid container spacing={2}>
+              <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
                     label="Name"
-                    margin="dense"
                     value={employeeToEdit.name}
                     onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, name: e.target.value })}
                   />
@@ -1980,17 +2566,15 @@ const AdminDashboard = () => {
                   <TextField
                     fullWidth
                     label="Email"
-                    margin="dense"
                     value={employeeToEdit.email}
                     onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, email: e.target.value })}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Total Leaves"
                     type="number"
-                    margin="dense"
                     value={employeeToEdit.totalLeaves}
                     onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, totalLeaves: e.target.value })}
                   />
@@ -1998,19 +2582,8 @@ const AdminDashboard = () => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Sick Leave"
-                    type="number"
-                    margin="dense"
-                    value={employeeToEdit.sickleave}
-                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, sickleave: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
                     label="Salary"
                     type="number"
-                    margin="dense"
                     value={employeeToEdit.salary}
                     onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, salary: e.target.value })}
                   />
@@ -2018,9 +2591,17 @@ const AdminDashboard = () => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
+                    label="Sick Leave"
+                    type="number"
+                    value={employeeToEdit.sickleave}
+                    onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, sickleave: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
                     label="Casual Leave"
                     type="number"
-                    margin="dense"
                     value={employeeToEdit.casualleave}
                     onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, casualleave: e.target.value })}
                   />
@@ -2030,7 +2611,6 @@ const AdminDashboard = () => {
                     fullWidth
                     label="Medical Leave"
                     type="number"
-                    margin="dense"
                     value={employeeToEdit.medicalleave}
                     onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, medicalleave: e.target.value })}
                   />
@@ -2040,13 +2620,12 @@ const AdminDashboard = () => {
                     fullWidth
                     label="Work From Home"
                     type="number"
-                    margin="dense"
                     value={employeeToEdit.Workfromhome}
                     onChange={(e) => setEmployeeToEdit({ ...employeeToEdit, Workfromhome: e.target.value })}
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <FormControl fullWidth margin="dense">
+                  <FormControl fullWidth>
                     <InputLabel>Role</InputLabel>
                     <Select
                       value={employeeToEdit.role}
@@ -2071,7 +2650,7 @@ const AdminDashboard = () => {
                 </Grid>
                 {employeeToEdit.isTeamLeader && (
                   <Grid item xs={12}>
-                    <FormControl fullWidth margin="dense">
+                    <FormControl fullWidth>
                       <InputLabel>Select Team Members</InputLabel>
                       <Select
                         multiple
@@ -2094,51 +2673,43 @@ const AdminDashboard = () => {
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => setEditDialogOpen(false)}
-              color="inherit"
               variant="outlined"
-              sx={{ borderRadius: 8 }}
+              color="inherit"
+              sx={{ borderRadius: 10, textTransform: "none", fontWeight: 600 }}
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleUpdateEmployee}
-              color="primary"
-              variant="contained"
-              startIcon={!isSmall && <EditIcon />}
-              sx={{
-                borderRadius: 8,
-                boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
-                "&:hover": {
-                  boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
-                },
-              }}
-            >
-              {isSmall ? <EditIcon /> : "Update Employee"}
-            </Button>
+            <GradientButton onClick={handleUpdateEmployee} startIcon={<Edit />}>
+              Update Employee
+            </GradientButton>
           </DialogActions>
         </Dialog>
 
-        {/* Employee Leave History Dialog */}
         <Dialog
           open={Boolean(selectedEmployee)}
           onClose={() => setSelectedEmployee(null)}
           maxWidth="md"
           fullWidth
-          fullScreen={isSmall}
+          fullScreen={isMobile}
+          PaperProps={{
+            sx: {
+              borderRadius: isMobile ? 0 : 3,
+            },
+          }}
         >
-          <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
+          <DialogTitle>
+            <Typography variant="h6" fontWeight="bold">
               {selectedEmployee}'s Leave History
             </Typography>
           </DialogTitle>
-          <DialogContent dividers>
+          <DialogContent>
             {leaveHistory.length > 0 ? (
               <>
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "medium" }}>
                     Leave Distribution
                   </Typography>
-                  <Box sx={{ height: isSmall ? 200 : 300 }}>
+                  <Box sx={{ height: isMobile ? 200 : 300 }}>
                     <LeaveHistoryChart
                       data={{
                         sickLeave: leaveHistory
@@ -2157,32 +2728,30 @@ const AdminDashboard = () => {
                     />
                   </Box>
                 </Box>
-                <ResponsiveTableContainer>
+                <StyledTableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <StyledTableCell>Start Date</StyledTableCell>
-                        <StyledTableCell>End Date</StyledTableCell>
-                        <StyledTableCell>Status</StyledTableCell>
-                        {!isSmall && <StyledTableCell>Days Taken</StyledTableCell>}
-                        {!isSmall && <StyledTableCell>Reason</StyledTableCell>}
+                        <TableCell>Start Date</TableCell>
+                        <TableCell>End Date</TableCell>
+                        <TableCell>Status</TableCell>
+                        {!isMobile && <TableCell>Days Taken</TableCell>}
+                        {!isMobile && <TableCell>Reason</TableCell>}
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {leaveHistory.map((leave, index) => (
-                        <StyledTableRow key={index}>
+                        <TableRow key={index} hover>
                           <TableCell>{leave.startDate}</TableCell>
                           <TableCell>{leave.endDate}</TableCell>
-                          <TableCell>
-                            <StatusChip label={leave.status} status={leave.status} size="small" />
-                          </TableCell>
-                          {!isSmall && <TableCell>{leave.daysTaken}</TableCell>}
-                          {!isSmall && <TableCell>{leave.reason}</TableCell>}
-                        </StyledTableRow>
+                          <TableCell>{getStatusChip(leave.status)}</TableCell>
+                          {!isMobile && <TableCell>{leave.daysTaken}</TableCell>}
+                          {!isMobile && <TableCell>{leave.reason}</TableCell>}
+                        </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </ResponsiveTableContainer>
+                </StyledTableContainer>
               </>
             ) : (
               <Box sx={{ py: 4, textAlign: "center" }}>
@@ -2195,10 +2764,9 @@ const AdminDashboard = () => {
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => setSelectedEmployee(null)}
-              color="primary"
               variant="contained"
               sx={{
-                borderRadius: 8,
+                borderRadius: 10,
                 boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
                 "&:hover": {
                   boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
@@ -2210,46 +2778,24 @@ const AdminDashboard = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Action Menu for Mobile */}
-        <Menu anchorEl={actionMenuAnchorEl} open={Boolean(actionMenuAnchorEl)} onClose={handleActionMenuClose}>
-          {selectedActionUser && (
-            <>
-              <MenuItem
-                onClick={() => {
-                  handleLeaveAction(selectedActionUser, "Approved")
-                  handleActionMenuClose()
-                }}
-              >
-                <CheckIcon fontSize="small" color="success" sx={{ mr: 1 }} />
-                Approve
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  updateLeaveStatus(selectedActionUser._id, "Rejected")
-                  handleActionMenuClose()
-                }}
-              >
-                <CloseIcon fontSize="small" color="error" sx={{ mr: 1 }} />
-                Reject
-              </MenuItem>
-            </>
-          )}
-        </Menu>
-
-        {/* Comment Dialog */}
         <Dialog
           open={commentDialogOpen}
           onClose={() => setCommentDialogOpen(false)}
           maxWidth="sm"
           fullWidth
-          fullScreen={isSmall}
+          fullScreen={isMobile}
+          PaperProps={{
+            sx: {
+              borderRadius: isMobile ? 0 : 3,
+            },
+          }}
         >
-          <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: isSmall ? "1.1rem" : "1.25rem" }}>
+          <DialogTitle>
+            <Typography variant="h6" fontWeight="bold">
               Add Comment for Approval
             </Typography>
           </DialogTitle>
-          <DialogContent dividers>
+          <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Add an optional message that will be included in the email notification to the employee.
             </Typography>
@@ -2266,31 +2812,53 @@ const AdminDashboard = () => {
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => setCommentDialogOpen(false)}
-              color="inherit"
               variant="outlined"
-              sx={{ borderRadius: 8 }}
+              color="inherit"
+              sx={{ borderRadius: 10 }}
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleCommentSubmit}
-              color="primary"
-              variant="contained"
-              startIcon={!isSmall && <CheckIcon />}
-              sx={{
-                borderRadius: 8,
-                boxShadow: "0 4px 12px rgba(63, 81, 181, 0.2)",
-                "&:hover": {
-                  boxShadow: "0 6px 16px rgba(63, 81, 181, 0.3)",
-                },
-              }}
-            >
-              {isSmall ? <CheckIcon /> : "Approve with Comment"}
-            </Button>
+            <GradientButton onClick={handleCommentSubmit} startIcon={<Check />}>
+              Approve with Comment
+            </GradientButton>
           </DialogActions>
         </Dialog>
-      </Main>
-    </Box>
+
+        {/* <CHANGE> Modern snackbar notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          TransitionComponent={Grow}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            variant="filled"
+            sx={{
+              width: "100%",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+              borderRadius: 10,
+              fontWeight: 500,
+            }}
+            icon={
+              snackbar.severity === "success" ? (
+                <CheckCircleOutline />
+              ) : snackbar.severity === "error" ? (
+                <CancelOutlined />
+              ) : snackbar.severity === "warning" ? (
+                <HourglassEmpty />
+              ) : (
+                <Info />
+              )
+            }
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </ThemeProvider>
   )
 }
 
