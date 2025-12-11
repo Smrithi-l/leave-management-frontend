@@ -554,6 +554,20 @@ const CalendarCell = styled(Box)(({ theme, isSelected, hasLeave, leaveStatus, is
   },
 }))
 
+const handleLogout = () => {
+  localStorage.clear();                // removes token & all saved data
+  sessionStorage.clear();              // optional: clears session data
+  
+  // Prevent going back
+  window.history.pushState(null, "", window.location.href);
+  window.onpopstate = function () {
+    window.location.href = "/";   // forces redirect even if they click back
+  };
+
+  // Redirect to login page
+  window.location.replace("/");   // replace() prevents back navigation
+};
+
 const CircularProgressWithLabel = ({ value, color, label, total }) => {
   const normalizedValue = Math.min((value / total) * 100, 100)
 
@@ -1953,12 +1967,12 @@ const EmployeeDashboard = () => {
           <ListItemText primary="Help & Support" />
         </ListItemButton>
 
-        <ListItemButton>
-          <ListItemIcon>
-            <Logout color="error" />
-          </ListItemIcon>
-          <ListItemText primary="Logout" primaryTypographyProps={{ color: "error" }} />
-        </ListItemButton>
+        <ListItemButton onClick={handleLogout}>
+                  <ListItemIcon>
+                <Logout color="error" />
+                </ListItemIcon>
+               <ListItemText primary="Logout" primaryTypographyProps={{ color: "error" }} />
+               </ListItemButton>
       </List>
     </Box>
   )

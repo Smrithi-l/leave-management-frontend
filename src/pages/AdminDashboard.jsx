@@ -529,6 +529,21 @@ const StatCard = styled(Card)(({ theme, accentColor }) => ({
   },
 }))
 
+const handleLogout = () => {
+  localStorage.clear();                // removes token & all saved data
+  sessionStorage.clear();              // optional: clears session data
+  
+  // Prevent going back
+  window.history.pushState(null, "", window.location.href);
+  window.onpopstate = function () {
+    window.location.href = "/";   // forces redirect even if they click back
+  };
+
+  // Redirect to login page
+  window.location.replace("/");   // replace() prevents back navigation
+};
+
+
 const CircularProgressWithLabel = ({ value, color, label, total }) => {
   const normalizedValue = Math.min((value / total) * 100, 100)
 
@@ -1207,12 +1222,13 @@ const AdminDashboard = () => {
           <ListItemText primary="Help & Support" />
         </ListItemButton>
 
-        <ListItemButton>
+        <ListItemButton onClick={handleLogout}>
           <ListItemIcon>
-            <Logout color="error" />
-          </ListItemIcon>
-          <ListItemText primary="Logout" primaryTypographyProps={{ color: "error" }} />
-        </ListItemButton>
+        <Logout color="error" />
+        </ListItemIcon>
+       <ListItemText primary="Logout" primaryTypographyProps={{ color: "error" }} />
+       </ListItemButton>
+
       </List>
     </Box>
   )
@@ -1593,7 +1609,7 @@ const AdminDashboard = () => {
                             <TableHead>
                               <TableRow>
                                 <TableCell>Employee</TableCell>
-                                <TableCell>Type</TableCell>
+                                <TableCell>Type</TableCell> 
                                 <TableCell>From</TableCell>
                                 <TableCell>To</TableCell>
                                 {!isMobile && <TableCell>Duration</TableCell>}
@@ -2182,7 +2198,7 @@ const AdminDashboard = () => {
               <Fade in={true} timeout={500}>
                 <Box>
                   <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 4 }}>
-                    Leave Calendar
+                    Leave Calendar 
                   </Typography>
 
                   <GlassCard>
