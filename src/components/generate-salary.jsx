@@ -48,6 +48,7 @@ import {
   Warning as WarningIcon,
 } from "@mui/icons-material"
 import axios from "axios"
+import logo from "../assets/logo.jpg";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: "bold",
@@ -1076,9 +1077,8 @@ export default function GenerateSalary() {
   <body>
     <div class="container">
       <div class="header">
-<img src="1.jpg" class="company-logo" alt="Company Logo">
-
-        <div class="company-name">ThingsDock</div>
+        <img src="${logo}" class="company-logo" alt="Company Logo" />
+        <div class="company-name">CloserLook Digital Software Pvt Ltd</div>
         <div class="salary-slip-title">Salary Slip</div>
       </div>
 
@@ -1985,13 +1985,13 @@ export default function GenerateSalary() {
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
                   <Box>
                     <Typography variant="h5" sx={{ fontWeight: "bold", color: "primary.main" }}>
-                      COMPANY NAME
+                      CLOSERLOOK DIGITAL SERVICE PVT LTD
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      123 Business Street, City, Country
+                      4th Floor, Ashirwadh Complex, 13/2, R.S.Puram, Coimbatore, Tamil Nadu 641002
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Phone: (123) 456-7890 | Email: hr@company.com
+                      Phone: 063806 45514 | Email: nfo@closerlookdigitalsoftware.com
                     </Typography>
                   </Box>
                   <Box sx={{ textAlign: "right" }}>

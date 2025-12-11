@@ -2128,7 +2128,7 @@ const AdminDashboard = () => {
                             Leave Type Distribution
                           </Typography>
                           <Box sx={{ height: 300 }}>
-                            <LeaveTypeDistribution data={overallStats.leavesByType} />
+                            <LeaveTypeDistribution data={leaveStats} />
                           </Box>
                         </CardContent>
                       </GlassCard>
@@ -2167,7 +2167,7 @@ const AdminDashboard = () => {
                             Employee Leave Distribution
                           </Typography>
                           <Box sx={{ height: 400 }}>
-                            <EmployeeLeaveDistribution data={leaveStats} />
+                            <EmployeeLeaveDistribution data={overallStats.leavesByEmployee} />
                           </Box>
                         </CardContent>
                       </GlassCard>
